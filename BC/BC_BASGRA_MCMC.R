@@ -5,7 +5,7 @@
      {
      # Give intermediate output to the screen for tracking the progress of the MCMC
        jint <- min(1000,round(nChain/20))
-       if (j%%jint == 0) cat("Iteration",j,"|",round(100*nAccepted/(j-nBI)),"%","|",logPrior0,"|",logL0,"\n")
+       if (j%%jint == 0) cat("Iteration",j,"|",round(1000*nAccepted/(j-nBI)),"%","|",logPrior0,"|",logL0,"\n")
      # Select the candidate parameter vector and calculate its prior probability
        candidatepValues  <- mvrnorm(n=1, pValues, vcovProp, tol=1e-6, empirical=FALSE)
        reflectionFromMin <- pmin(0.,candidatepValues-parmin/abs(parmod))

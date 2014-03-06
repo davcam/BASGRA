@@ -19,16 +19,20 @@ Subroutine Light(DAYL,DTR,LAI,PAR)
   DTRINT = DTR * (1 - exp(-0.75*K*LAI))
 end Subroutine Light
   
-Subroutine EVAPTRTRF(Fdepth,PEVAP,PTRAN,ROOTD,WAL, EVAP,TRAN)
+Subroutine EVAPTRTRF(Fdepth,PEVAP,PTRAN,ROOTD,WAL, EVAP,TRAN,RWA,WFPS)
   real :: Fdepth, PEVAP, PTRAN, ROOTD, WAL, EVAP, TRAN
   real :: AVAILF, FR, WAAD, WCL, WCCR
+  real :: RWA, WFPS
   if (Fdepth < ROOTD) then
     WCL = WAL*0.001 / (ROOTD-Fdepth)
   else
     WCL = 0
   end if                                                        ! (m3 m-3)
   WAAD = 1000. * WCAD * (ROOTD-Fdepth)                          ! (mm)
-  EVAP = PEVAP * max(0., min(1., (WCL-WCAD)/(WCFC-WCAD) ))      ! (mm d-1)
+  RWA    = max(0., min(1., (WCL - WCAD) / (WCFC - WCAD) ) )       ! % (-)
+  WFPS   = max(0., min(1., (WCL - WCAD) / (WCST - WCAD) ) )       ! % (-)
+  EVAP = PEVAP * RWA                                            ! (mm d-1)
+  !EVAP = PEVAP * max(0., min(1., (WCL-WCAD)/(WCFC-WCAD) ))      ! (mm d-1)
   WCCR = WCWP + max( 0.01, PTRAN/(PTRAN+TRANCO) * (WCFC-WCWP) ) ! (m3 m-3)
   if (WCL > WCCR) then
     FR = max(0., min(1., (WCST-WCL)/(WCST-WCWET) ))              
@@ -66,5 +70,12 @@ Subroutine ROOTDG(Fdepth,ROOTD,WAL, EXPLOR,RROOTD)
   end if
   EXPLOR = 1000. * RROOTD * WCFC
 end Subroutine ROOTDG
+
+Subroutine Nsupply(CRT,NMIN,Nsup)
+  real :: CRT
+  real :: NMIN
+  real :: Nsup
+  Nsup = min(CRT*KNUPT*((NMIN*1000.)/(KNMIN+(NMIN*1000.))),(NMIN*1000.)/DELT)
+end Subroutine Nsupply
 
 end module resources

@@ -5,6 +5,8 @@ use parameters_plant
 use environment
 implicit none
 
+!integer ihv
+
 real :: CRESMX,DAYLGE,FRACTV,GLVSI,GSTSI,LERG,LERV,LUEMXQ,NELLVG,NOHARV,PHENRF,PHOT
 real :: RDRFROST,RDRT,RDRTOX,RESPGRT,RESPGSH,RESPHARD,RESPHARDSI,RESNOR,RLEAF,RplantAer,SLANEW
 real :: RATEH,reHardPeriod
@@ -12,14 +14,16 @@ real :: RATEH,reHardPeriod
 Contains
 
 Subroutine Harvest(CLV,CRES,CST,doy,LAI,PHEN,TILG,TILV, &
-                                      GSTUB,HARVLA,HARVLV,HARVPH,HARVRE,HARVST,HARVTG)
-  integer :: doy
+                                      GSTUB,HARVLA,HARVLV,HARVPH,HARVRE,HARVST,HARVTG,ihv)
+  integer :: doy,ihv
   real    :: TILV, TILG, CST, LAI, CLV, CRES, PHEN
   real    :: GSTUB, HARVLV, HARVLA, HARVRE, HARVTG, HARVST, HARVPH
   real    :: CLAI, HARV, HARVFR, TV1
-  if ( (doy==doyHA(1)) .or. (doy==doyHA(2)) .or. (doy==doyHA(3)) ) then  
+!  if ( (doy==doyHA(1)) .or. (doy==doyHA(2)) .or. (doy==doyHA(3)) ) then  
+  if (doy==doyHA(ihv)) then
     HARV   = 1.0
     NOHARV = 0.0
+    ihv = ihv + 1
   else
     HARV   = 0.0
     NOHARV = 1.0
@@ -95,7 +99,8 @@ Subroutine LUECO2TM(PARAV)
   PMAX   = VCMAX * (CO2I-GAMMAX) / (CO2I + KMC * (1+O2/KMO)) !(micromol CO2 m-2 s-1)
   TMPFAC = max( 0., min( 1., (T+4.)/5. ) )                   !(-)
   EFF    = TMPFAC * (1/2.1) * (CO2I-GAMMAX) / (4.5*CO2I+10.5*GAMMAX) !(mol CO2 mol-1 PAR quanta)
-  LUEMXQ = EFF*PMAX*(1+KLUETILG*(1-FRACTV)) / (EFF*K*PARAV + PMAX) !(mol CO2 mol-1 PAR quanta)Aug 8    
+  LUEMXQ = EFF * PMAX / (EFF*K*PARAV + PMAX)                 !(mol CO2 mol-1 PAR quanta)
+  !LUEMXQ = EFF*PMAX*(1+KLUETILG*(1-FRACTV)) / (EFF*K*PARAV + PMAX) !(mol CO2 mol-1 PAR quanta)Aug 8    
 end Subroutine LUECO2TM
   
 Subroutine HardeningSink(CLV,DAYL,doy,LT50,Tsurf)
@@ -160,6 +165,7 @@ end Subroutine Growth
      end if
      ! All surplus carbohydrate goes to roots
      ALLORT  = ALLOTOT - ALLOSH - GRES
+
        if (GSHSI == 0.) GSHSI = 1
      ALLOLV  = GLVSI * (ALLOSH / GSHSI)
      ALLOST  = GSTSI * (ALLOSH / GSHSI)
@@ -169,7 +175,44 @@ end Subroutine Growth
      RESPGSH = (ALLOLV + ALLOST) * (1-YG)
      RESPGRT =  ALLORT           * (1-YG)
    end Subroutine Allocation
-    
+
+Subroutine Nplant(NSup,Nupt,Ndemand,GLV,GRT,GST)
+  real :: GLV,GRT,GST
+  real :: NLV,NST,NRT
+  real :: Ndemand,fNgrowth
+  real :: NRESPGSH,NRESPGRT
+  real :: NSup,Nupt
+
+  NLV     = GLV * NC
+  NST     = GST * NC
+  NRT     = GRT * NC
+  NRESPGSH  = RESPGSH * NC
+  NRESPGRT  = RESPGRT * NC
+  
+  Ndemand  = NLV + NST + NRT
+  Nupt = min(NSup, Ndemand)
+!  Nupt = min(NSup*1000., Ndemand)
+  if (Ndemand.ne.0.0) then 
+        fNgrowth = Nupt/Ndemand
+  else 
+        fNgrowth = Nupt
+  endif
+  if (fNgrowth.gt.1.0) fNgrowth = 1.0
+  if (fNgrowth.lt.0.0) fNgrowth = 0.0
+ 
+  NLV = NLV * fNgrowth
+  NST = NST * fNgrowth
+  NRT = NRT * fNgrowth
+  NRESPGSH  = NRESPGSH * fNgrowth
+  NRESPGRT  = NRESPGRT * fNgrowth
+
+  GLV     = NLV / NC
+  GST     = NST / NC
+  GRT     = NRT / NC
+  RESPGSH  = NRESPGSH / NC
+  RESPGRT  = NRESPGRT / NC
+end Subroutine Nplant    
+
 Subroutine PlantRespiration(FO2,RESPHARD)
   real :: FO2,RESPHARD
   real :: fAer
@@ -183,8 +226,10 @@ Subroutine Senescence(CLV,CRT,CSTUB,doy,LAI,LT50,PERMgas,TANAER,TILV,Tsurf, &
   real :: CLV,CRT,CSTUB,DAYL,LAI,LT50,PERMgas,TANAER,TILV,Tsurf
   real :: DeHardRate,DLAI,DLV,DRT,DSTUB,dTANAER,DTILV,HardRate
   real :: RDRS, TV1, TV2, TV2TIL
+#ifdef winter
   call AnaerobicDamage(LT50,PERMgas,TANAER, dTANAER)
   call Hardening(CLV,LT50,Tsurf, DeHardRate,HardRate)
+#endif
   if (LAI < LAICR) then
     TV1 = 0.0 
   else 
@@ -192,12 +237,20 @@ Subroutine Senescence(CLV,CRT,CSTUB,doy,LAI,LT50,PERMgas,TANAER,TILV,Tsurf, &
   end if
   RDRS   = min(TV1, RDRSMX)
   RDRT   = max(0. , RDRTEM * Tsurf)
+#ifdef winter
   TV2    = NOHARV * max(RDRS,RDRT,RDRFROST,RDRTOX)
   TV2TIL = NOHARV * max(RDRS,     RDRFROST,RDRTOX)
+#else
+  TV2   = NOHARV * max(RDRS,RDRT)
+#endif
   DLAI   = LAI    * TV2
   DLV    = CLV    * TV2
   DSTUB  = CSTUB  * RDRSTUB
+#ifdef winter
   DTILV  = TILV   * TV2TIL
+#else
+  DTILV  = TILV   * TV2
+#endif
   DRT    = CRT    * RDRROOT
 end Subroutine Senescence
 
@@ -241,7 +294,8 @@ Subroutine Foliage2(GLV,LAI,TRANRF,Tsurf, GLAI,RGRTV,RGRTVG)
   else 
     TV1  = Tsurf/PHY
   end if
-  RLEAF  = TV1 * NOHARV * TRANRF * DAYLGE * ( FRACTV + PHENRF*(1-FRACTV) )
+!  RLEAF  = TV1 * NOHARV * TRANRF * DAYLGE * ( FRACTV + PHENRF*(1-FRACTV) )
+  RLEAF  = TV1 * NOHARV * TRANRF * ( FRACTV + PHENRF*(1-FRACTV) )
   TV2    = LAITIL - LAIEFT*LAI
     if (TV2 > FSMAX) TV2 = FSMAX
     if (TV2 < 0.0)   TV2 = 0.0

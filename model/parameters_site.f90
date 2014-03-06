@@ -17,6 +17,10 @@ module parameters_site
   real                  :: WCAD, WCFC, WCST, WCWET, WCWP
 
 
+! N site parameters 
+!  real, parameter        :: KNFIX = 0,RRUNBULK = 0.05
+  real, parameter        :: RRUNBULK = 0.05
+
 ! Soil - WINTER PARAMETERS
   real                  :: FGAS, FO2MX, gamma, KRTOTAER, KSNOW
   real, parameter       :: LAMBDAice      = 1.9354e+005
@@ -39,7 +43,10 @@ module parameters_site
   real, parameter       :: WETSTORI = 0.
   
 ! Management: harvest dates and irrigation
-  integer, dimension(3) :: doyHA
+  integer, dimension(24) :: doyHA
+  integer, dimension(24) :: doyFERT
+  real, dimension(24) :: FERTMIN
+  real, dimension(24) :: FERTORG
 !  integer, dimension(3) :: doyHA  = (/ 150, 216, 253 /)
   real, parameter       :: IRRIGF = 0.
 

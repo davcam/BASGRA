@@ -49,10 +49,16 @@ Contains
     VP     = VPI(day)   ! vapour pressure (kPa)
     WN     = WNI(day)   ! mean wind speed (m s-1)
     DAVTMP = (TMMN + TMMX)/2.0
+#ifdef winter
     DTR    = RDD * exp(-KSNOW*DRYSTOR) * 0.001
+#else
+    DTR = RDD * 0.001
+#endif
     PAR    = 0.5*4.56*DTR
   end Subroutine set_weather_day
 #endif
+
+#ifdef winter
 
 Subroutine MicroClimate(doy,DRYSTOR,Fdepth,Frate,LAI,Sdepth,Tsurf,WAPL,WAPS,WETSTOR, &
           FREEZEPL,INFIL,PackMelt,poolDrain,poolInfil,pSnow,reFreeze,SnowMelt,THAWPS,wRemain)
@@ -206,6 +212,20 @@ end Subroutine MicroClimate
           THAWPS    = 0.
         end if
       end Subroutine SurfacePool
+
+#else
+  
+  Subroutine MicroClimate(LAI)
+    real :: LAI
+
+    if (RAIN.lt.(0.25*LAI)) then
+       RNINTC = RAIN
+    elseif ((1.0-RAIN).lt.(0.25*LAI)) then
+       RNINTC = 0.25*LAI
+    endif   
+  end Subroutine MicroClimate
+
+#endif
   
 Subroutine DDAYL(doy)
 !=============================================================================
