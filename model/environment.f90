@@ -3,10 +3,10 @@ module environment
 use parameters_site
 use parameters_plant
 implicit none
-integer, parameter :: NMAXDAYS = 365*200
-real :: RDD, TMMN, TMMX, VP, WN
-real :: YEARI(NMAXDAYS), DOYI(NMAXDAYS) , RAINI(NMAXDAYS), RDDI(NMAXDAYS)
-real :: TMMNI(NMAXDAYS), TMMXI(NMAXDAYS), VPI(NMAXDAYS), WNI(NMAXDAYS)
+integer, parameter :: NMAXDAYS = 10000
+real :: GR, TMMN, TMMX, VP, WN
+real :: YEARI(NMAXDAYS), DOYI(NMAXDAYS) , RAINI(NMAXDAYS), GRI(NMAXDAYS)
+real :: TMMNI(NMAXDAYS), TMMXI(NMAXDAYS), VPI(NMAXDAYS)  , WNI(NMAXDAYS)
 
 #ifdef weathergen
 real :: PETI(NMAXDAYS)
@@ -28,11 +28,11 @@ Contains
     year   = YEARI(day) ! day of the year (d)
     doy    = DOYI(day)  ! day of the year (d)
     RAIN   = RAINI(day) ! precipitation (mm d-1)	
-    RDD    = RDDI(day)  ! irradiation (kJ m-2 d-1)	
+    GR     = GRI(day)   ! irradiation (MJ m-2 d-1)	
     TMMN   = TMMNI(day) ! minimum temperature (degrees Celsius)
     TMMX   = TMMXI(day) ! maximum temperature (degrees Celsius)
     DAVTMP = (TMMN + TMMX)/2.0
-    DTR    = RDD * exp(-KSNOW*DRYSTOR) * 0.001
+    DTR    = GR * exp(-KSNOW*DRYSTOR)
     PAR    = 0.5*4.56*DTR
     PET    = PETI(day)
   end Subroutine set_weather_day
@@ -43,13 +43,13 @@ Contains
     year   = YEARI(day) ! day of the year (d)
     doy    = DOYI(day)  ! day of the year (d)
     RAIN   = RAINI(day) ! precipitation (mm d-1)	
-    RDD    = RDDI(day)  ! irradiation (kJ m-2 d-1)	
+    GR     = GRI(day)   ! irradiation (MJ m-2 d-1)	
     TMMN   = TMMNI(day) ! minimum (or average) temperature (degrees Celsius)
     TMMX   = TMMXI(day) ! maximum (or average) temperature (degrees Celsius)
     VP     = VPI(day)   ! vapour pressure (kPa)
     WN     = WNI(day)   ! mean wind speed (m s-1)
     DAVTMP = (TMMN + TMMX)/2.0
-    DTR    = RDD * exp(-KSNOW*DRYSTOR) * 0.001
+    DTR    = GR * exp(-KSNOW*DRYSTOR)
     PAR    = 0.5*4.56*DTR
   end Subroutine set_weather_day
 #endif
