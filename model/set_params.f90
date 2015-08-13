@@ -1,24 +1,20 @@
-Subroutine set_params(hd,pa)
+Subroutine set_params(pa)
 
 use parameters_site
 use parameters_plant
 implicit none
-integer, dimension(3) :: hd
-real                  :: pa(76)
-
-! Management
-doyHA     = hd
+real      :: pa(81)
 
 ! Initial constants
-CLVI	  = pa(1)
-CRESI     = pa(2)
-CRTI	  =	pa(3)
-CSTI	  =	pa(4)
-LAII      = pa(5)	   
-PHENI	  =	pa(6) 
-TILTOTI	  =	pa(7) 
-FRTILGI	  = pa(8)
-LT50I     = pa(9)
+LOG10CLVI  = pa(1)
+LOG10CRESI = pa(2)
+LOG10CRTI  = pa(3)
+CSTI	   = pa(4)
+LOG10LAII  = pa(5)	   
+PHENI	   = pa(6) 
+TILTOTI	   = pa(7) 
+FRTILGI	   = pa(8)
+LT50I      = pa(9)
 
 ! Process parameters 
 CLAIV     = pa(10)	   
@@ -57,10 +53,10 @@ YG        = pa(42)
 
 LAT       = pa(43)
 WCI       = pa(44)
-WCAD      = pa(45)
-WCWP      = pa(46)
-WCFC      = pa(47)
-WCWET     = pa(48)
+FWCAD     = pa(45)
+FWCWP     = pa(46)
+FWCFC     = pa(47)
+FWCWET    = pa(48)
 WCST      = pa(49)
 WpoolMax  = pa(50)
 
@@ -90,6 +86,22 @@ TmeltFreeze	 = pa(73)
 TrainSnow	 = pa(74)			
 TsurfDiff	 = pa(75)
 KLUETILG	 = pa(76)
+FRTILGG1I	 = pa(77)
+DAYLG1G2     = pa(78)
+RGRTG1G2     = pa(79)
+RDRTMIN      = pa(80)
+TVERN        = pa(81)
+
+! Parameter transformations 
+CLVI  = 10**LOG10CLVI
+CRESI = 10**LOG10CRESI
+CRTI  = 10**LOG10CRTI
+LAII  = 10**LOG10LAII
+
+WCAD  = FWCAD  * WCST
+WCWP  = FWCWP  * WCST
+WCFC  = FWCFC  * WCST
+WCWET = FWCWET * WCST
 
 return
 end

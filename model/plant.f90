@@ -5,40 +5,46 @@ use parameters_plant
 use environment
 implicit none
 
-real :: CRESMX,DAYLGE,FRACTV,GLVSI,GSTSI,LERG,LERV,LUEMXQ,NELLVG,NOHARV,PHENRF,PHOT
+integer :: NOHARV
+real :: CRESMX,DAYLGE,FRACTV,GLVSI,GSTSI,LERG,LERV,LUEMXQ,NELLVG,PHENRF,PHOT
 real :: RDRFROST,RDRT,RDRTOX,RESPGRT,RESPGSH,RESPHARD,RESPHARDSI,RESNOR,RLEAF,RplantAer,SLANEW
-real :: RATEH,reHardPeriod
+real :: RATEH,reHardPeriod,TV2TIL
 
 Contains
 
-Subroutine Harvest(CLV,CRES,CST,doy,LAI,PHEN,TILG,TILV, &
-                                      GSTUB,HARVLA,HARVLV,HARVPH,HARVRE,HARVST,HARVTG)
-  integer :: doy
-  real    :: TILV, TILG, CST, LAI, CLV, CRES, PHEN
-  real    :: GSTUB, HARVLV, HARVLA, HARVRE, HARVTG, HARVST, HARVPH
-  real    :: CLAI, HARV, HARVFR, TV1
-  if ( (doy==doyHA(1)) .or. (doy==doyHA(2)) .or. (doy==doyHA(3)) ) then  
-    HARV   = 1.0
-    NOHARV = 0.0
-  else
-    HARV   = 0.0
-    NOHARV = 1.0
-  end if
-  FRACTV = TILV/(TILG + TILV)
+!Subroutine Harvest(CLV,CRES,CST,doy,LAI,PHEN,TILG,TILV, &
+Subroutine Harvest(CLV,CRES,CST,year,doy,DAYS_HARVEST,LAI,PHEN,TILG2,TILV, &
+                             GSTUB,HARVLA,HARVLV,HARVPH,HARVRE,HARVST,HARVTILG2)
+  integer :: doy,year
+  integer,dimension(100,2) :: DAYS_HARVEST
+  real    :: CLV, CRES, CST, LAI, PHEN, TILG2, TILV
+  real    :: GSTUB, HARVLV, HARVLA, HARVRE, HARVTILG2, HARVST, HARVPH
+  real    :: CLAI, HARVFR, TV1
+  integer :: HARV,i
+ 
+  HARV   = 0
+  NOHARV = 1
+  do i=1,100    
+    if ( (year==DAYS_HARVEST(i,1)) .and. (doy==DAYS_HARVEST(i,2)) ) then
+      HARV   = 1
+      NOHARV = 0	
+	end if
+  end do
+  FRACTV = TILV/(TILG2 + TILV)
   CLAI   = FRACTV * CLAIV
   if (LAI <= CLAI) then
     HARVFR = 0.0
   else
     HARVFR = 1.0 - CLAI/LAI
   end if
-  HARVLA = (HARV * LAI * HARVFR) / DELT
-  HARVLV = (HARV * CLV * HARVFR) / DELT
-  HARVPH = (HARV * PHEN        ) / DELT
-  TV1    = (HARVFR * FRACTV) + (1-FRACTV)*HAGERE
-  HARVRE = (HARV * TV1 * CRES  ) / DELT
-  HARVST = (HARV * CST         ) / DELT
-  GSTUB  = HARVST * HAGERE
-  HARVTG = (HARV * TILG        ) / DELT
+  HARVLA    = (HARV   * LAI * HARVFR) / DELT
+  HARVLV    = (HARV   * CLV * HARVFR) / DELT
+  HARVPH    = (HARV   * PHEN        ) / DELT
+  TV1       = (HARVFR * FRACTV) + (1-FRACTV)*HAGERE
+  HARVRE    = (HARV   * TV1 * CRES  ) / DELT
+  HARVST    = (HARV   * CST         ) / DELT
+  GSTUB     =  HARVST * (1-HAGERE)
+  HARVTILG2 = (HARV   * TILG2       ) / DELT
 end Subroutine Harvest
 
 Subroutine Biomass(CLV,CRES,CST)
@@ -117,8 +123,8 @@ Subroutine HardeningSink(CLV,DAYL,doy,LT50,Tsurf)
   RESPHARDSI = RATEH * CLV * KRESPHARD * max(0.,min(1., RESNOR*5. ))
 end Subroutine HardeningSink
 
-Subroutine Growth(CLV,CRES,CST,PARINT,TILG,TILV,TRANRF, GLV,GRES,GRT,GST,RESMOB)
-  real :: CLV,CRES,CST,PARINT,TILG,TILV,TRANRF
+Subroutine Growth(CLV,CRES,CST,PARINT,TILG2,TILV,TRANRF, GLV,GRES,GRT,GST,RESMOB)
+  real :: CLV,CRES,CST,PARINT,TILG2,TILV,TRANRF
   real :: GLV,GRES,GRT,GST,RESMOB
   real :: ALLOTOT,CSTAV,GLAISI,GRESSI,SOURCE,SINK1T
   PHOT     = PARINT * TRANRF * 12. * LUEMXQ * NOHARV
@@ -127,16 +133,16 @@ Subroutine Growth(CLV,CRES,CST,PARINT,TILG,TILV,TRANRF, GLV,GRES,GRT,GST,RESMOB)
   RESPHARD = min(SOURCE,RESPHARDSI)
   ALLOTOT  = SOURCE - RESPHARD
   GRESSI   = 0.5 * (RESMOB + max(0.,(CRESMX-CRES)/DELT))
-  if (TILG /= 0.0) then 
-    CSTAV  = CST/TILG 
+  if (TILG2 /= 0.0) then 
+    CSTAV  = CST/TILG2 
   else 
     CSTAV  = 0.
   end if
   SINK1T   = max(0., 1 - (CSTAV/CSTAVM)) * SIMAX1T
   NELLVG   = PHENRF * NELLVM 
-  GLAISI   = ((LERV*TILV*NELLVM*LFWIDV) + (LERG*TILG*NELLVG*LFWIDG)) * SHAPE * TRANRF
+  GLAISI   = ((LERV*TILV*NELLVM*LFWIDV) + (LERG*TILG2*NELLVG*LFWIDG)) * SHAPE * TRANRF
   GLVSI    = (GLAISI * NOHARV / SLANEW) / YG
-  GSTSI    = (SINK1T * TILG * TRANRF * NOHARV) / YG
+  GSTSI    = (SINK1T * TILG2 * TRANRF * NOHARV) / YG
   call Allocation(ALLOTOT,GRESSI, GRES,GRT,GLV,GST)
 end Subroutine Growth
 
@@ -182,7 +188,7 @@ Subroutine Senescence(CLV,CRT,CSTUB,doy,LAI,LT50,PERMgas,TANAER,TILV,Tsurf, &
   integer :: doy
   real :: CLV,CRT,CSTUB,DAYL,LAI,LT50,PERMgas,TANAER,TILV,Tsurf
   real :: DeHardRate,DLAI,DLV,DRT,DSTUB,dTANAER,DTILV,HardRate
-  real :: RDRS, TV1, TV2, TV2TIL
+  real :: RDRS, TV1, TV2
   call AnaerobicDamage(LT50,PERMgas,TANAER, dTANAER)
   call Hardening(CLV,LT50,Tsurf, DeHardRate,HardRate)
   if (LAI < LAICR) then
@@ -191,7 +197,7 @@ Subroutine Senescence(CLV,CRT,CSTUB,doy,LAI,LT50,PERMgas,TANAER,TILV,Tsurf, &
     TV1 = RDRSCO*(LAI-LAICR)/LAICR
   end if
   RDRS   = min(TV1, RDRSMX)
-  RDRT   = max(0. , RDRTEM * Tsurf)
+  RDRT   = max(RDRTMIN, RDRTEM * Tsurf)
   TV2    = NOHARV * max(RDRS,RDRT,RDRFROST,RDRTOX)
   TV2TIL = NOHARV * max(RDRS,     RDRFROST,RDRTOX)
   DLAI   = LAI    * TV2
@@ -199,6 +205,7 @@ Subroutine Senescence(CLV,CRT,CSTUB,doy,LAI,LT50,PERMgas,TANAER,TILV,Tsurf, &
   DSTUB  = CSTUB  * RDRSTUB
   DTILV  = TILV   * TV2TIL
   DRT    = CRT    * RDRROOT
+
 end Subroutine Senescence
 
    Subroutine AnaerobicDamage(LT50,PERMgas,TANAER, dTANAER)
@@ -231,23 +238,33 @@ end Subroutine Senescence
      HardRate   = RESPHARD / (CLV * KRESPHARD)
    end Subroutine Hardening
 
-Subroutine Foliage2(GLV,LAI,TRANRF,Tsurf, GLAI,RGRTV,RGRTVG)
-  real :: GLV,LAI,TRANRF,Tsurf
-  real :: GLAI,RGRTV,RGRTVG
-  real :: TGE,TV1,TV2
-  GLAI   = SLANEW * GLV
+!Subroutine Foliage2(GLV,LAI,TRANRF,Tsurf, GLAI,RGRTV,RGRTVG)
+!Subroutine Foliage2(GLV,LAI,TRANRF,Tsurf, GLAI,RGRTV,RGRTVG)
+Subroutine Foliage2(DAYL,GLV,LAI,TILV,TILG1,TRANRF,Tsurf,VERN, GLAI,GTILV,TILVG1,TILG1G2)
+  real    :: DAYL,GLV,LAI,TILV,TILG1,TRANRF,Tsurf
+  integer :: VERN
+  real    :: GLAI,GTILV,TILVG1,TILG1G2
+  real    :: RGRTV,RGRTVG1,TGE,TV1,TV2
+  GLAI    = SLANEW * GLV
   if (Tsurf < TBASE) then 
-    TV1  = 0.0 
+    TV1   = 0. 
   else 
-    TV1  = Tsurf/PHY
+    TV1   = Tsurf/PHY
   end if
-  RLEAF  = TV1 * NOHARV * TRANRF * DAYLGE * ( FRACTV + PHENRF*(1-FRACTV) )
-  TV2    = LAITIL - LAIEFT*LAI
+  RLEAF   = TV1 * NOHARV * TRANRF * DAYLGE * ( FRACTV + PHENRF*(1-FRACTV) )
+  TV2     = LAITIL - LAIEFT*LAI
     if (TV2 > FSMAX) TV2 = FSMAX
-    if (TV2 < 0.0)   TV2 = 0.0
-  RGRTV  = TV2 * RESNOR * RLEAF
-  TGE    = max(0.0, 1 - (abs(DAVTMP - TOPTGE))/(TOPTGE-TBASE))
-  RGRTVG = NOHARV * DAYLGE * TGE * RGENMX
+    if (TV2 < 0.)   TV2 = 0.
+  RGRTV   = max( 0.       , TV2 * RESNOR * RLEAF )
+  GTILV   = TILV  * RGRTV
+  TGE     = max( 0.       , 1 - (abs(DAVTMP - TOPTGE))/(TOPTGE-TBASE))
+  RGRTVG1 = min( 1.-TV2TIL, NOHARV * DAYLGE * TGE * RGENMX ) * VERN
+  TILVG1  = TILV  * RGRTVG1
+  if (DAYL > DAYLG1G2) then
+    TILG1G2 = TILG1 * RGRTG1G2
+  else
+    TILG1G2 = 0.
+  end if
 end Subroutine Foliage2
 
 end module plant

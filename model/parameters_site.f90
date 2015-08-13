@@ -14,8 +14,8 @@ module parameters_site
 ! Soil
   real, parameter       :: DRATE  =  50
   real                  :: WCI
-  real                  :: WCAD, WCFC, WCST, WCWET, WCWP
-
+  real                  :: FWCAD, FWCWP, FWCFC, FWCWET, WCST
+  real                  ::  WCAD,  WCWP,  WCFC,  WCWET
 
 ! Soil - WINTER PARAMETERS
   real                  :: FGAS, FO2MX, gamma, KRTOTAER, KSNOW
