@@ -1,5 +1,5 @@
 ## 1. INITIALISATION ##
-   source('initialise_BASGRA_Saerheim_00_early_Gri.R')
+   source('initialise_BASGRA_Saerheim_1_early_Gri_weathergen.R')
 
 ## 2. RUNNING ##
    output <- .Fortran('BASGRA', NDAYS,NOUT, y)[[3]]

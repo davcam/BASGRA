@@ -8,7 +8,7 @@
      max_FRTILG <- 0.9
 
 ## MEASUREMENTS ##
-   data_all   <- read.table('BC/data_calibration_Saerheim_00_early_Gri.txt',header=F,sep="")
+   data_all   <- read.table('BC/data_calibration_Saerheim_01_late_Gri.txt',header=F,sep="")
 # Split the data into those for which the likelihood will depend on data +- uncertainty
 # and those for which the likelihood will depend on [data_min,data_max]
    data       <- data_all[which(data_all$V1!='FRTILG'),]

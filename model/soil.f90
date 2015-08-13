@@ -50,8 +50,7 @@ end Subroutine Physics
        WCeff = WCL
      end if
      ! Calculating potential frost rate 'PFrate'
-!     if ((Fdepth == 0.).and.(Tsurf>0.)) then ! No soil frost present AND no frost starting
-     if (((Fdepth == 0.).and.(Tsurf>0.)).or.(WCeff == 0.)) then ! No soil frost present AND no frost starting
+     if ((Fdepth == 0.).and.(Tsurf>0.)) then ! No soil frost present AND no frost starting
        PFrate = 0.
      else
        alpha  = LAMBDAsoil / ( RHOwater * WCeff * LatentHeat )

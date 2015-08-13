@@ -15,30 +15,32 @@
                             ( parmax[1:np]/abs(parmod[1:np]) - parmin[1:np]/abs(parmod[1:np]) )
        logPrior1Beta     <- sum( dbeta(pBetaValues,aa,bb,log=T) )
        logPrior1         <- logPrior1Beta
-     # Unscale parameters and run the model
-       Sim_candidatepValues <- candidatepValues*abs(parmod)
-       .Fortran('set_params_BC', Sim_candidatepValues)
-       output               <- .Fortran('basgra', NDAYS,NOUT,y)[[3]]
-     # Select the model outputs for which there are measurements and calculate likelihood
-     
-       output_calibr_rows    <- data_time - doy_simstart + 1
-       output_calibr         <- if(length(data_value)==1) {
-                      output[output_calibr_rows, data_index]
-       } else { diag( output[output_calibr_rows, data_index] ) }
-       if(dim(data_mm)[1]>0) {
-         output_mm_calibr_rows <- data_mm_time - doy_simstart + 1
-         output_mm_calibr      <- if(length(data_mm_value)==1) {
-                        output[output_mm_calibr_rows, data_mm_index]
-         } else { diag( output[output_mm_calibr_rows, data_mm_index] ) }
-       }     
-       logL1_        <- flogL( output_calibr, data_value, data_sd )
-       logL1_mm      <- 0
-       if(dim(data_mm)[1]>0) {
-         logL1_mm      <- flogL_mm(output_mm_calibr,data_mm_value,data_mm_min,data_mm_max)
+     # Unscale parameters, run the model for each site and calculate likelihood
+       logL1 <- 0 ; for (s in 1:nSites) {
+         source(sitesettings_filenames[s])
+         Sim_candidatepValues <- candidatepValues*abs(parmod)
+         .Fortran('set_params_BC', Sim_candidatepValues)
+         output             <- .Fortran('BASGRA', NDAYS,NOUT,y)[[3]]
+         doy_simstart       <- output[1,3]
+         output_calibr_rows <- data_time[[s]] - doy_simstart + 1
+         output_calibr      <- if(length(data_value[[s]])==1) {
+                          output[output_calibr_rows, data_index[[s]]]
+           } else { diag( output[output_calibr_rows, data_index[[s]]] ) }
+         if(dim(database_mm[[s]])[1]>0) {
+           output_mm_calibr_rows <- data_mm_time[[s]] - doy_simstart + 1
+           output_mm_calibr      <- if(length(data_mm_value[[s]])==1) {
+                            output[output_mm_calibr_rows, data_mm_index[[s]]]
+             } else { diag( output[output_mm_calibr_rows, data_mm_index[[s]]] ) }
+         }
+         logL1s      <- flogL(output_calibr,data_value[[s]],data_sd[[s]])
+         logL1s_mm   <- 0
+         if(dim(database_mm[[s]])[1]>0) {
+           logL1s_mm <- flogL_mm(output_mm_calibr,data_mm_value[[s]],data_mm_min[[s]],data_mm_max[[s]])
+         }
+         logL1       <- logL1 + logL1s + logL1s_mm
        }
-       logL1         <- logL1_ + logL1_mm
      # Check whether the candidate parameter vector is accepted, and extend the parameter chain.
-       logalpha      <- logPrior1 + logL1 - (logPrior0 + logL0)
+       logalpha          <- logPrior1 + logL1 - (logPrior0 + logL0)
        if (log(runif(1,0,1)) < logalpha) {
          pValues   <- candidatepValues
          logPrior0 <- logPrior1
@@ -51,6 +53,6 @@
            parMAP  <- pValues }
          if (j > nBI)
            { nAccepted <- nAccepted + 1 }
-         }
+       }
        pChain[j,] <- pValues
      }

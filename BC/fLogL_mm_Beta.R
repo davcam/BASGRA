@@ -1,8 +1,11 @@
-flogL_mm <- function(sims,data,data_min=0,data_max=1,cv=0.2) {
-  scsims      <- (sims-data_min) / (data_max-data_min)
-  scmode      <- (data-data_min) / (data_max-data_min)
-  aplusb      <- max( 3, (1-scmode)/(scmode*cv^2)-1 ) # Approximation
-  a           <- scmode * (aplusb-2) + 1
-  b           <- aplusb - a
-  sum( dbeta(scsims,a,b,log=T) )
+flogL_mm <- function(sims,data,data_min,data_max)
+{
+   scsims      <- sims     / abs(data)
+   scdata_min  <- data_min / abs(data)
+   scdata_max  <- data_max / abs(data)
+   scdata      <- data     / abs(data)
+   aa          <- 1. + 4 * ( (scdata-scdata_min) / (scdata_max-scdata_min) )
+   bb          <- 6. - aa 
+   scfraction  <- (scsims-scdata_min) / (scdata_max-scdata_min)
+   sum( dbeta(scfraction,aa,bb,log=T) )
 }
