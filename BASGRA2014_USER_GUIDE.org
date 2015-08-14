@@ -1,0 +1,2128 @@
+* BASGRA: The BASic GRAssland model
+
+** Table of Contents
+
+-  1 Introduction
+
+   -  1.1 Model history
+
+-  2 Quick start
+
+   -  2.1 TO MAKE EVERYTHING READY FOR RUNNING BASGRA:
+
+   -  2.2 TO RUN THE MODEL for default conditions:
+
+   -  2.3 TO INSPECT MODEL OUTPUT in RStudio after a run:
+
+   -  2.4 TO RUN THE MODEL FOR A DIFFERENT SITE OR YEAR:
+
+   -  2.5 TO APPLY BAYESIAN CALIBRATION to model parameters
+
+   -  2.6 TO FIND MORE DETAILS OF THESE AND OTHER MODELLING PROCEDURES:
+
+-  3 General overview of the model
+
+   -  3.1 What processes does BASGRA simulate?
+
+   -  3.2 State variables
+
+   -  3.3 Inputs
+
+   -  3.4 Outputs
+
+   -  3.5 Technical details
+
+      -  3.5.1 General set-up using FORTRAN and R
+
+      -  3.5.2 Directories and files
+
+      -  3.5.3 Modules and subroutines
+
+      -  3.5.4 Variables, parameters and constants
+
+      -  3.5.5 Model time-step
+
+-  4 Details of processes and algorithms
+
+   -  4.1 Weather
+
+   -  4.2 Soil temperature
+
+   -  4.3 Water balance
+
+      -  4.3.1 Soil frost depth dynamics
+
+      -  4.3.2 Snow melt
+
+      -  4.3.3 Effects of drought on transpiration and other plant
+         processes
+
+   -  4.4 Phenology
+
+   -  4.5 Light interception
+
+   -  4.6 Carbon balance
+
+   -  4.7 Photosynthesis
+
+   -  4.8 Carbon allocation
+
+   -  4.9 Dynamics of reserves
+
+   -  4.10 Leaf area dynamics and tillering
+
+   -  4.11 Senescence
+
+   -  4.12 Hardening and the impact of frost
+
+   -  4.13 The impact of anaerobic conditions
+
+   -  4.14 The impact of harvesting
+
+-  5 Installing FORTRAN, R and RStudio
+
+   -  5.1 Install gfortran
+
+   -  5.2 Install R
+
+   -  5.3 Install RStudio
+
+-  6 Installing the model files
+
+-  7 Compiling the model
+
+   -  7.1 Removing the previous DLL
+
+-  8 Initialising the model
+
+   -  8.1 Step 1: General initialisation
+
+      -  8.1.1 'outputNameList'
+
+      -  8.1.2 'plotOutputs'
+
+   -  8.2 Step 2: Site-specific initialisation
+
+      -  8.2.1 Weather files
+
+      -  8.2.2 Cutting dates
+
+      -  8.2.3 Parameter values
+
+-  9 Running the model
+
+   -  9.1 Running the model with pre-defined settings
+
+   -  9.2 Running with different settings of your own choosing
+
+   -  9.3 Running a batch job, i.e. a series of runs
+
+-  10 Selecting and examining model outputs
+
+   -  10.1 Choosing different output variables
+
+   -  10.2 Examining output
+
+      -  10.2.1 Matrix variable 'output'
+
+      -  10.2.2 Graphs
+
+      -  10.2.3 Comparing outputs from multiple runs:
+         'run\_BASGRA\_3par\_plotAllOutputs.R'
+
+      -  10.2.4 Comparing outputs from multiple runs:
+         'run\_BASGRA\_3par\_plotAgainstData.R'
+
+-  11 Changing model structure
+
+-  12 Bayesian calibration (BC)
+
+   -  12.1 STEP 1: Selecting parameters for calibration
+
+   -  12.2 STEP 2: Defining the prior probability distribution
+
+      -  12.2.1 Parameter constraints
+
+   -  12.3 STEP 3: Selecting calibration data
+
+   -  12.4 STEP 4: Defining the likelihood function
+
+   -  12.5 STEP 5: Running the MCMC
+
+   -  12.6 STEP 6: Analysing the outcome of the MCMC
+
+   -  12.7 On single-site BC vs. multi-site BC
+
+   -  12.8 On running the BC with different settings and/or different
+      data
+
+-  13 Publications on BASGRA and related models
+
+-  14 References cited
+
+-  15 APPENDIX I: FORTRAN files and subroutines
+
+-  16 APPENDIX II: Variables
+
+   -  16.1 Introductory comments
+
+      -  16.1.1 Types of variables
+
+   -  16.2 State variables (BASGRA.f90)
+
+   -  16.3 Non-state variables (BASGRA.f90)
+
+   -  16.4 Variables (readweather.f90)
+
+   -  16.5 Variables (environment.f90)
+
+   -  16.6 Variables (soil.f90)
+
+   -  16.7 Variables (resources.f90)
+
+   -  16.8 Variables (plant.f90)
+
+-  17 APPENDIX III: Parameters
+
+   -  17.1 Introductory comments
+
+   -  17.2 Parameters in BASGRA.f90
+
+   -  17.3 Parameters in environment.f90
+
+   -  17.4 Parameters in soil.f90
+
+   -  17.5 Parameters in resources.f90
+
+   -  17.6 Parameters in plant.f90
+
+-  18 APPENDIX IV: Constants
+
+   -  18.1 Introductory comments
+
+   -  18.2 Constants in BASGRA.f90
+
+   -  18.3 Constants in read\_weather.f90
+
+   -  18.4 Constants in environment.f90
+
+   -  18.5 Constants in soil.f90
+
+   -  18.6 Constants in resources.f90
+
+   -  18.7 Constants in plant.f90
+
+** 1 Introduction
+
+This document contains general documentation and a user manual for the
+grassland model BASGRA. The name of the model stands for BASic GRAssland
+model, reflecting the intention to represent processes in simple ways.
+Despite this, the aim is to make the model widely applicable by
+simulating the impacts of a wide range of environmental drivers. BASGRA
+simulates the growth and survival of grassland swards for any period of
+time, so the user can decide whether to run the model just for a short
+growing season, a winter period, or for a sequence of whole years. The
+version of the model documented here is that of 19 September 2014.
+
+*** 1.1 Model history
+
+The first version of the model was called LINGRA and was developed in
+Wageningen by Ad Schapendonk and colleagues. LINGRA simulated only the
+growing season. To make the model usable for studying climate change
+impacts, the effect of CO2 and temperature on the light-use efficiency
+of the sward was included (Rodriguez et al. 1999). Most of the further
+development of the model took place in Norway at Planteforsk, Saerheim
+(now Bioforsk). Whereas the Wageningen version of the model was mainly
+used for perennial ryegrass, the model was changed in Norway to allow
+simulation of timothy (Phleum pratense) as well. For that purpose,
+tillering was simulated in greater detail, distinguishing elongating
+from non-elongating tillers (Höglind et al. 2001; Van Oijen et al.
+2005). Algorithms for winter processes were developed by Stig Morten
+Thorsen and colleagues (Thorsen et al. 2010, Thorsen & Höglind 2010).
+More recently, the model code was translated into FORTRAN by David
+Cameron, and the 'summer' and 'winter' processes were linked together,
+producing the year-round model now called BASGRA.
+
+** 2 Quick start
+
+*** 2.1 TO MAKE EVERYTHING READY FOR RUNNING BASGRA:
+
+-  Install R, RStudio and gfortran on your computer.
+
+-  Unzip 'BASGRA\_2014-09-19.zip'.
+
+*** 2.2 TO RUN THE MODEL for default conditions:
+
+-  Double-click on 'run\_BASGRA\_Saerheim\_00\_early\_Gri' to open the
+   file in RStudio.
+
+-  Click on 'Source' to run the file.
+
+*** 2.3 TO INSPECT MODEL OUTPUT in RStudio after a run:
+
+-  Click on the 'Plots' tab and use the arrows to see different plots.
+
+-  Study the variable called 'output' which contains the values of all
+   output variables, for every simulated day.
+
+-  The names and units of all output variables are listed in variables
+   'outputNames and 'outputUnits'.
+
+*** 2.4 TO RUN THE MODEL FOR A DIFFERENT SITE OR YEAR:
+
+-  Make and use your own files 'run\_BASGRA\_[].R' and
+   'initialise\_BASGRA\_[..].R'.
+
+*** 2.5 TO APPLY BAYESIAN CALIBRATION to model parameters
+
+-  Run 'BC\_BASGRA\_Saerheim\_00\_early\_Gri.R' and inspect, outside
+   RStudio, the pdf-files and txt-file that it produces.
+
+   -  Note that this calibration uses MCMC which means that the model is
+      run many times in a loop, so this takes longer than a single model
+      run. Also note that the default setting of 1000 iterations in the
+      Markov chain (which for this calibration is set in file
+      ‘BC\_BASGRA\_MCMC\_init\_Saerheim\_00\_early\_Gri.R' in directory
+      ‘BC') runs is actually too short. Use 10\^4 - 10\^5 runs for
+      proper calibration.
+
+*** 2.6 TO FIND MORE DETAILS OF THESE AND OTHER MODELLING PROCEDURES:
+
+-  See other chapters of this manual.
+
+** 3 General overview of the model
+
+*** 3.1 What processes does BASGRA simulate?
+
+BASGRA simulates year-round processes in grassland swards: growth and
+development during the growing season and survival over the winter.
+Interactions with the atmospheric and soil environment are simulated in
+some detail. This includes the role of management, i.e. cutting and
+irrigation. During winter, the model keeps track of the dynamics of
+water in its various forms: ice-formation below- and aboveground, snow
+cover, storage of liquid water within snow, soil and surface pools.
+Damage by frost and by anaerobic conditions under ice accelerate
+senescence depending on the degree to which the plants were hardened.
+During the growing season, the environment is less complicated. Water
+still cycles between soil, plants and atmosphere, but is only present in
+liquid form. Plant physiology is then very active: photosynthesis,
+respiration, dynamics of reserves and allocation, leaf area dynamics,
+tillering, water uptake. Growth depends on the strength of both the
+source (photosynthesis and remobilisation of reserves) and the sinks
+(the carbon-demand of growing organs and of the hardening process). The
+major occasional disturbance is removal of tillers and leaves by
+cutting, with subsequent regrowth of the sward. Regrowth rate depends on
+the phenological stage at which cutting took place and on the magnitudes
+of sources and sinks. BASGRA is a one-dimensional model in that it keeps
+track of the height of snow cover and the depth to which soil is frozen.
+Horizontal heterogeneity of soil and sward is not captured. The model
+also does not simulate nitrogen relations.
+
+*** 3.2 State variables
+
+BASGRA has 23 state variables. 13 of those variables quantify the state
+of the plants, the others represent the above- and belowground
+environment in which the plants grow. Three types of state variables can
+be distinguished: variables for mass, form and function. The figure
+shows the state variables in each category, with the names they have in
+the computer code. Variable names, units and meanings are listed in the
+Appendices.
+
+[[file:media/image1.PNG]]
+
+*** 3.3 Inputs
+
+The major inputs to the model are time series of weather variables:
+radiation, temperature, precipitation, wind speed and humidity. The last
+two of these are only used in the calculation of potential rates of
+evaporation and transpiration. The model can also be used in a different
+way, where wind speed and humidity are not provided but potential
+evapotranspiration itself is an input. Further, the model requires time
+series indicating at which days the grass is cut. Given the typically
+short time periods of simulation, atmospheric CO2 concentration is not
+provided as a time series but as a constant. Soil properties, such as
+parameters of water retention, are also provided as constants.
+
+*** 3.4 Outputs
+
+The model generates 35 different output variables, which include the 23
+state variables. BASGRA does not simulate some variables which are very
+important in grassland productivity, such as digestibility and fibre
+content of the harvested material, but these are closely related to
+leaf:stem ration which the model can calculate. The selection of output
+variables can be altered by the model user.
+
+*** 3.5 Technical details
+
+**** 3.5.1 General set-up using FORTRAN and R
+
+BASGRA is written in FORTRAN and R. Simulations are run from
+script-files in R, which:
+
+1. set the time period of simulation,
+
+2. identify the weather file,
+
+3. set the cutting dates,
+
+4. set parameter values,
+
+5. call FORTRAN to iteratively calculate rates and states,
+
+6. collect the output,
+
+7. make plots.
+
+**** 3.5.2 Directories and files
+
+When the zip-file is unzipped, there will be seven directories: the
+master directory plus six subdirectories called 'BC', 'data',
+'initialisation', 'model', 'parameters', 'weather'. We shall now give a
+short overview of the files contained in the seven directories. More
+details on some of the files will appear in later sections. The master
+directory contains:
+
+-  2 script-files in R for model running: 'run\_[].R'
+
+-  2 script-files in R for model calibration: 'BC\_[].R'
+
+-  2 compiled model files: 'BASGRA\_[].DLL'
+
+-  2 batch files for compiling the model: 'compile\_BASGRA\_[].bat'
+
+-  1 script-file in R showing examples of how to work with BASGRA:
+   'INTRODUCTION\_EXAMPLES\_BASGRA2014.R'
+
+Subdirectory 'model' contains:
+
+-  3 FORTRAN files for model parameterisation: 'parameters\_[].f90' and
+   'set\_params.f90'
+
+-  5 FORTRAN files that contain the model proper, i.e. the calculations
+   of rates and states.
+
+Subdirectory 'BC' contains:
+
+-  3 files defining different likelihood functions: 'fLogL[].R'
+
+-  3 script-files in R for initialising a Bayesian calibration:
+   'BC\_BASGRA\_MCMC\_init\_[].R'
+
+-  1 script-file in R for running the Bayesian Calibration by means of
+   the Markov Chain Monte Carlo method of Metropolis:
+   'BC\_BASGRA\_MCMC.R'
+
+-  1 script-file in R for writing the modes of the prior and posterior
+   parameter distributions plus other calibration results to txt-file:
+   'BC\_export\_parModes.R'
+
+-  3 script-files in R for plotting calibration results: 'BC\_plot[].R'
+
+Subdirectory 'data' contains:
+
+-  4 files with calibration data: 'data\_calibration\_[].txt'
+
+Subdirectory 'initialisation' contains:
+
+-  6 script-files in R for model initialisation: 'initialise\_[].R'
+
+Subdirectory 'model' contains:
+
+-  8 FORTRAN files that together define BASGRA.
+
+Subdirectory 'parameters' contains:
+
+-  1 file with default values of all parameters: ‘parameters.txt'.
+
+-  2 txt-files listing parameters that can be calibrated, with their
+   prior minimum, mode and maximum 'parameters\_BC\_[].txt'
+
+Subdirectory 'weather' contains:
+
+-  1 file with weather data in 'weather generator' format:
+   'AP\_BCM\_AB1\_2050\_year1.txt'
+
+-  2 files with weather data in 'Bioforsk' format: 'weather\_[].txt'
+
+-  1 README-file explaining the 'Bioforsk' format
+
+**** 3.5.3 Modules and subroutines
+
+In each FORTRAN file ('[].f90'), the code is organised in one module
+with the same name as the file, and/or one or more subroutines. Modules
+make it easy to make variables declared in one file accessible in
+another. Variables declared in the first lines of module A can be
+accessed from module B if a 'use A'-statement is inserted there.
+However, we use the module-method only for intermediate variables. [See
+next section for an explanation of the different variable types.] State
+and rate variables are passed through the headers of subroutines. A
+table provided as one of the Appendices shows in which subroutine of
+which file/module each rate variable is being calculated.
+
+-  Notes on programming style
+
+   -  In cases of modules which contain multiple subroutines (such as in
+      'plant.f90' and 'environment.f90'), the subroutines are sorted
+      from high to low level, i.e. subroutines that are being called
+      follow the 'calling' subroutines. Low-level subroutines are also
+      indented more.
+
+   -  Each subroutine follows a standardised structure:
+
+      -  Subroutine NAME(INPUTS alphabetically,[space or
+         newline],OUTPUTS alphabetically)
+
+      -  INPUTS alphabetically
+
+      -  OUTPUTS alphabetically
+
+      -  LOCAL VARIABLES alphabetically
+
+      -  BODY of subroutine
+
+      -  end Subroutine NAME
+
+**** 3.5.4 Variables, parameters and constants
+
+Like most models, BASGRA contains five types of variables: states,
+rates, inputs, outputs and intermediate variables. State variables
+represent basic quantities. Rate variables quantify by how much the
+states are changed every time step. Rates are calculated as functions of
+states and input variables read-in by the model. Complicated rate
+calculations are made readable by the use of intermediate variables.
+Output variables play no role in the rate calculations, but are
+calculated only for user interest. Besides variables, BASGRA also
+contains parameters and constants. Both have fixed values, but
+parameters are considered uncertain or site-specific whereas the values
+given to constants are considered known and universal. So only
+parameters can be calibrated. Complete lists of all variables,
+parameters and constants in BASGRA can be found in the Appendices.
+
+-  Units\\
+   The dimensions of the variables, parameters and constants are
+   expressed in units according to a common pattern. Time is in days,
+   length in meters, mass in g carbon or kg water, temperature in
+   degrees Celsius. For example, leaf biomass is in g C m-2 and
+   transpiration rate in kg H2O m-2 d-1 (which we refer to as mm d-1).
+   Some output variables do not follow this pattern, e.g. total
+   aboveground biomass is given in kg dry matter m-2.
+
+**** 3.5.5 Model time-step
+
+The model has a time step of one day.
+
+** 4 Details of processes and algorithms
+
+*** 4.1 Weather
+
+The model reads weather data from file. The files must include daily
+data for radiation, temperature and precipitation. For other variables
+there are two options: either relative humidity and wind speed are
+provided or potential evapotranspiration rate. BASGRA includes an
+algorithm to determine whether the precipitation falls as rain or snow.
+More details on the structure of the weather files are given below, in
+the section on 'Preparing for a model run: input and initialisation
+files'.
+
+*** 4.2 Soil temperature
+
+BASGRA does not calculate the vertical temperature profile in the soil.
+It does calculate the temperature at the soil surface, as a function of
+atmospheric temperature, snow depth and soil frost depth. Snow cover
+makes soil surface temperature closer to zero degrees, the impact of
+frost depth is more complex.
+
+*** 4.3 Water balance
+
+The water balance in BASGRA is characterized by eight state variables.
+Two of these are variables of form, representing snow cover height and
+soil frost depth. The remaining six state variables are variables of
+mass of water in different phases (liquid, snow, ice), above- and
+belowground. The relationships between the six mass state variables and
+the rates that modify them are depicted in the figure.
+
+[[file:media/image2.PNG]]
+
+During the growing season all water states tend to be zero, except for
+the pool of liquid water in the soil (state variable WAL). BASGRA then
+acts as a model with a single soil layer between surface and rooting
+depth. Water is added to the soil pool by rain and irrigation, and by
+root growth leading to exploration of deeper soil. Water availability to
+plants is determined only by rooting depth, not root mass. Water is lost
+from the soil through drainage, runoff, evaporation and transpiration by
+plants. When snow falls, the state variable DRYSTOR (mass of snow per
+unit ground area) becomes positive, and so is the state variable
+representing the height of the snow pack. Snow can hold some liquid
+water, represented by state variable WETSTOR. If soil surface
+temperature is below the freezing point, soil water will start freezing
+from the top. This is captured by state variable WAS for the mass of
+soil ice and state variable Fdepth for its depth. Once frost depth
+exceeds a threshold of 0.2 m, liquid water can no longer infiltrate the
+soil and a surface pool of water is formed. The surface pool is subject
+to freezing and thawing, and thus also requires two state variables to
+represent the different phases (WAPL, WAPS). The threshold of 0.2 m is
+based on a study which reported infiltration despite the presence of a
+frozen soil layer 20-40 cm thick.
+
+**** 4.3.1 Soil frost depth dynamics
+
+The calculation of the rate of frost depth change is based on
+energy-balance considerations. The rate is given by a simple function of
+soil surface temperature and the amount of ice between the frost
+boundary and the surface.
+
+**** 4.3.2 Snow melt
+
+The calculation of snow melt is based on an algorithm used by the
+Norwegian Water Resources and Energy Directorate (NVE) for operational
+snow information services. This uses a sinusoidal melt-index curve with
+maximum snowmelt on day no 174 (23 June), and minimum snowmelt on day no
+358 (23 December).
+
+**** 4.3.3 Effects of drought on transpiration and other plant processes
+
+The effect of soil water status on plants is mediated by the so-called
+transpiration realisation factor (TRANRF). This intermediate variable is
+calculated as a function of soil water content, soil water retention
+characteristics (mainly wilting point and field capacity) and plant
+transpirational demand for water. TRANRF has a value of one when soil
+water content is not too far below field capacity, starts to fall when
+water decreases below a critical level and reaches zero at wilting
+point. Several plant processes are directly proportional to TRANRF,
+including transpiration rate. Other processes affected will be mentioned
+in the following sections.
+
+*** 4.4 Phenology
+
+BASGRA contains a state variable PHEN which represents the phenological
+stage of the plants. PHEN increases daily at a rate that depends on
+temperature and day length, and it is reset to zero after each cut.
+Advancing phenological stage leads to reductions in leaf appearance rate
+(RLEAF) and in the number of elongating leaves on non-elongating
+tillers. Besides through state variable PHEN, day length also affects
+some processes directly, as captured in intermediate variable DAYLGE.
+This variable modifies RLEAF, leaf elongation rate on elongating
+tillers, and the priorities of sinks in carbon allocation. Some of these
+phenological algorithms are based on Helge Bonesmo's PhD-thesis model
+for cv. Bodin.
+
+*** 4.5 Light interception
+
+Light interception is modelled by Beer's law with a constant light
+extinction coefficient operating on the LAI. When there is snow cover, a
+constant light extinction coefficient for snow operates too. Plants only
+receive the light not intercepted by snow.
+
+*** 4.6 Carbon balance
+
+BASGRA has seven state variables for biomass. Five of these are the
+carbon contents in roots, reserves, stubble, stems, and leaves. The
+model also keeps track of carbon in dead and harvested leaves. The seven
+state variables for carbon pools and the rates that modify them are
+shown in the figure. The various processes depicted in the figure are
+discussed in the following paragraphs.
+
+[[file:media/image3.PNG]]
+
+*** 4.7 Photosynthesis
+
+The rate of photosynthesis is the product of intercepted radiation and
+photosynthetic light-use efficiency (LUEMXQ), which is a function of
+CO2, temperature, light intensity and Rubisco concentration of upper
+leaves. LUEMXQ accounts for carbon lost to maintenance respiration, but
+not growth respiration. So the calculated photosynthesis rate is gross
+photosynthesis minus maintenance respiration. LUEMXQ starts decreasing
+linearly when temperature drops below one degree Celsius until it
+becomes zero at minus four degrees. It is also sensitive to drought and
+decreases conform TRANRF (see section "Water balance").
+
+*** 4.8 Carbon allocation
+
+Carbon available for plant use, from photosynthesis and remobilised
+reserves, is allocated to different sinks according to a system of
+changing sink priorities and changing sink strengths. There are five
+sinks: the processes of winter hardening, replenishment of the reserves
+pool, root growth, stem growth, leaf growth. Sink strengths are defined
+as the rate at which these processes would proceed with no source
+limitation. The hardening process has top priority, so its demand is met
+in full if source strength is large enough, irrespective of the four
+other sinks. Root growth has lowest priority and depends on carbon
+unused by other sinks. The other sinks have intermediate priorities
+which change with day length. When day lengths are short, reserves have
+higher priority than stems and leaves, with the opposite during the rest
+of the year. Leaves and stems have equal priority so they receive carbon
+according to their sink strengths.
+
+*** 4.9 Dynamics of reserves
+
+Reserves can be remobilized with a time constant of two days. When
+temperature drops below five degrees Celsius, remobilisation slows down
+until it stops completely at zero degrees.
+
+*** 4.10 Leaf area dynamics and tillering
+
+BASGRA represents tiller density by thre state variables: TILV
+(vegetative tillers), TILG1 (non-elongating generative tillers) and
+TILG2 (elongating generative tillers). The rate at which new vegetative
+tillers are formed is proportional to leaf appearance rate, but
+site-filling is reduced when LAI is high or reserve content is low. Leaf
+appearance rate itself depends on temperature, at a constant
+phyllochron, but slows down under drought, short day length, and when
+the sward becomes dominated by elongating tillers at an advanced
+phenological stage. The rate at which vegetative tillers move to the
+generative category has a temperature optimum and is reduced at short
+day lengths. Generative tillers move from the non-elongating to the
+elongating tillers category at a constant daily rate as long as the day
+length is above the minimum required for this process. For genotypes
+with a vernalization requirement, this transition from vegetative to
+non-elongating generative tillers only occurs after the vernalization
+requirement has been fulfilled. The vernalization requirement is
+simulated in a simplistic way using a threshold temperature. As soon as
+the temperature falls below the threshold value, the vernalization
+requirement is considered fulfilled and vegetative tillers start moving
+to the non-elongating generative tiller category.
+
+The sink strength associated with the stem growth of elongating tillers
+decreases linearly with their size, and is also sensitive to drought.
+The sink strength associated with the growth of leaves is calculated as
+potential leaf area growth divided by specific leaf area (SLA). The SLA
+of new leaf growth decreases linearly with reserve content. Potential
+growth rate of leaf area is drought-sensitive and proportional to the
+product of tiller density, the number of elongating leaves per tiller, a
+constant leaf width and a temperature-dependent leaf elongation rate.
+All four factors in that product differ between elongating and
+non-elongating tillers, so the calculation is done separately for the
+two categories and then summed. Leaf elongation rates increase linearly
+with temperature, based on relationships determined by Peacock (1976)
+and observations in Saerheim.
+
+*** 4.11 Senescence
+
+The senescence rate of leaves and non-elongating tillers increases with
+LAI. Leaves, but not tillers, also die faster at higher soil surface
+temperatures. Two other drivers of foliage death, frost and anaerobic
+conditions, are discussed in following sections. The model does not
+simulate senescence of elongating tillers or roots. Stubble does die,
+but at a constant relative rate.
+
+*** 4.12 Hardening and the impact of frost
+
+Sensitivity to frost is measured by the state variable LT50, the "Lethal
+Temperature 50%", which is the soil surface temperature that would kill
+half the leaves and non-elongating tillers in one day. Lower
+temperatures induce the same death rate, higher temperatures are less
+damaging. The process whereby plants reduce LT50, i.e. increase their
+level of frost tolerance, is called hardening. Hardening capacity
+decreases over winter and is zero during spring and early summer.
+Dehardening, i.e. increasing LT50, is always possible. Hardening
+proceeds fastest when LT50 is high and temperatures low, and the
+opposite applies to dehardening. The hardening process, which is
+energy-demanding, slows down when reserve content is low.
+
+*** 4.13 The impact of anaerobic conditions
+
+When there is a surface ice layer (state variable WAPS > 0), anaerobic
+conditions are assumed present. The number of consecutive anaerobic days
+is monitored as state variable TANAER. Sensitivity to anaerobic
+conditions follows a logistic function of TANAER in which the LD50, i.e
+the lethal duration of anaerobic conditions that kills 50% of leaves and
+non-elongating tillers, is assumed to be linearly related to LT50 based
+on data for timothy cultivars Grindstad and Engmo. The logistic function
+was derived as minus the normalized derivative of the curve for the
+fraction surviving plants: Relative death rate = -(d fSurv/ dt) / fSurv.
+Given that the survival curve is well described as 1 / (1 +
+exp[r(t-LD50)]), the relative death rate is found to be: r / (1 +
+exp[-r(t-LD50)]). For the parameter r, a value of 0.2 leads to an
+observed width of the survival curve.
+
+*** 4.14 The impact of harvesting
+
+Most plant processes are interrupted during days when a harvest takes
+place. The cutting removes all elongating tillers, but no non-elongating
+tillers. Part of the biomass in elongating tillers becomes stubble. All
+leaf area (and corresponding leaf mass) above a threshold is removed by
+the cutting, as are most of the reserves.
+
+** 5 Installing FORTRAN, R and RStudio
+
+FORTRAN, R and RStudio are freely available from the web.
+
+*** 5.1 Install gfortran
+
+-  Go to: [[http://gcc.gnu.org/wiki/GFortranBinaries]] and scroll down
+   to the paragraph called 'MinGW build ("native Windows" build)'. Then
+   click in that paragraph on the link for downloading the latest
+   'installer (dated 2014-06-29 at the time of writing)' and choose
+   'Run'.
+
+*** 5.2 Install R
+
+-  Go to: [[http://cran.r-project.org]] and follow the instructions for
+   downloading and installing R.
+
+*** 5.3 Install RStudio
+
+-  Go to: [[http://www.rstudio.org/download/desktop]] and click on the
+   link to the version of RStudio 'Recommended For Your System'. Run the
+   installer.
+
+** 6 Installing the model files
+
+All that needs to be done for model installation is unzipping the files,
+but it is important to check that the files are put in the correct
+place. So Verify that the unzipping program has produced the correct
+directory structure. The top-level directory, which can have any name,
+should contain three subdirectories, called 'BC', 'input' and 'model'.
+The files that you should find in the four directories are listed above,
+in chapter 'General overview of the model', section 'Technical details',
+paragraph 'Directories and files'.
+
+** 7 Compiling the model
+
+This is not often needed. The zip-file already includes the result of
+model compilation, i.e. the file 'BASGRA.DLL'. But whenever you change
+one of the FORTRAN files (with extension '.f90'), the model needs to be
+recompiled so that an updated version of BASGRA.DLL is produced.
+
+-  The model can be recompiled simply by double-clicking on the file
+   'compile\_BASGRA\_gfortran.bat'.
+
+-  The most common reasons for changing FORTRAN files are when you want
+   to see different output variables than the model delivers by default,
+   or when you want to change the structure of the model.
+
+-  Another reason for recompilation is when you want to change the type
+   of weather file that BASGRA works with. That is discussed in the next
+   chapter.
+
+*** 7.1 Removing the previous DLL
+
+If you started an RStudio-session with BASGRA, and during that session
+recompiled the model outside RStudio, you may need to 'unload' the
+original DLL to prevent R from continuing to work with it. Use the
+following statement for this:
+
+-  dyn.unload('BASGRA.DLL')
+
+** 8 Initialising the model
+
+Before we run the model, we need to define the simulation period, the
+characteristics of the environment including the management, parameter
+values of the grass cultivar etc. This is organised using
+initialisation-files, in two steps.
+
+*** 8.1 Step 1: General initialisation
+
+There is one initialisation file called 'initialise\_BASGRA\_general.R'
+which is used in every run of the model.
+
+**** 8.1.1 'outputNames' and 'outputUnits'
+
+The general initialisation file contains lists of all the model's output
+variables with their units, called “outputNames” and “outputUnits”.
+These lists are used for plotting and in Bayesian calibration (to match
+measured to simulated variables).
+
+**** 8.1.2 'plotOutputs'
+
+The general initialisation file also includes the definition of a
+plotting function, 'plotOutputs', that can be used in RStudio to make
+plots of selected output variables.
+
+*** 8.2 Step 2: Site-specific initialisation
+
+Information on the specific site for which the model is run, is
+organised in site-specific initialisation files. These files:
+
+-  call the general initialisation file,
+
+-  define the start year and day of the simulation period, and its
+   length,
+
+-  read the appropriate weather data from file,
+
+-  set the cutting dates of the sward,
+
+-  set the parameter values of the model.
+
+**** 8.2.1 Weather files
+
+Weather data should be provided in the form of ASCII files. Two types of
+weather file can be handled by the model: (1) files following the
+'Bioforsk' template, (2) files generated by the LARS weather generator.
+The main difference is that the Bioforsk files include all weather
+variables required to calculate potential evapotranspiration rate (PET)
+using the Penman equation, whereas the weather generator files already
+include PET and do not include wind speed and humidity.
+
+-  Compilation of BASGRA for different weather files\\
+   To work with either type of weather file, BASGRA needs to be compiled
+   differently. To produce a 'BASGRA.DLL' that works with
+   Bioforsk-files, execute 'compile\_BASGRA\_gfortran.bat'. For weather
+   generator files, choose 'compile\_BASGRA\_gfortran\_weathergen.bat'.
+   The two compilation files only differ in that the latter one includes
+   the '-Dweathergen' switch, which makes the compiler select different
+   parts of the code in files 'BASGRA.f90', 'environment.f90' and
+   'read\_weather.f90'. The two different types of DLL are in fact
+   included in the zip-file, with filenames 'BASGRA\_Bioforsk.DLL' and
+   'BASGRA\_weathergen.DLL'. So instead of recompiling when you change
+   the weather file type, you can also rename the appropriate DLL-file
+   to 'BASGRA.DLL', but that would of course ignore any changes you made
+   in any of the FORTRAN-files.
+
+-  Weather files following the 'Bioforsk' template\\
+   The following are the first two lines from a typical Bioforsk-type
+   weather file:
+
+| ST(number) YR(year) doy(day) T(degC) TMMXI(degC) TMMNI(degC) RH(%) RAINI(mmd-1) WNI(ms-1) GR(MJm-2d-1)   |
+|----------------------------------------------------------------------------------------------------------|
+| 42 2000 1 5.9 6.9 4.7 100.0 15.6 2.5 1.2                                                                 |
+
+-  Bioforsk weather files contain a range of weather variables including
+   three for temperature. However, the values for daily maximum and
+   minimum temperature are not used in any of the model calculations, so
+   only the values provided for daily average temperature matter. Also
+   not used anywhere is the value in the first column, which specifies
+   the weather station from which the data originate.
+
+-  Weather files generated by the LARS weather generator\\
+   The following are the first two lines from a typical file generated
+   by the LARS weather generator:
+
+| station year DOY TMIN °C TMAX °C PREC (mm) Global rad (MJ m-2) Pot evapotranspiration (mm)   |
+|----------------------------------------------------------------------------------------------|
+| 46 1 1 -2.4 2.3 8.5 0.25 0                                                                   |
+
+-  The first column contains the weather station number which plays no
+   role in model calculations. There are two temperature variables, for
+   daily minimum and maximum temperature, but the model only uses the
+   average of those two in the calculation of temperature effects. So it
+   does not matter whether the true values of minimum and maximum
+   temperature are specified, or whether the daily average is repeated
+   in both columns.
+
+-  Weather data for multiple years\\
+   Weather data can span multiple years. The doy ('day of the year') for
+   the first year can run to 365 or 366. After that, doy should be
+   starting again from 1 when the data for the next year begin.
+
+-  Weather data called by the included site-specific initialisation
+   files
+
+   -  The files *initialise\_BASGRA\_Holt\_0506\_winter\_Gri.R* and
+      *initialise\_BASGRA\_Saerheim\_00\_early\_Gri.R* call Bioforsk
+      weather files: 'weather\_00\_Saerheim\_format\_bioforsk.txt' and
+      'weather\_0506\_Holt\_format\_bioforsk.txt', both in subdirectory
+      'input'.
+
+   -  The file
+      *initialise\_BASGRA\_Saerheim\_1\_early\_Gri\_weathergen.R* calls
+      a weather generator file: 'AP\_BCM\_AB1\_2050\_year1.txt'.
+
+**** 8.2.2 Cutting dates
+
+Cutting dates are defined in each site-specific initialisation file, in
+lines such as:
+
+-  days\_harvest[1,] <- c( 2000, 150 )
+
+-  days\_harvest[2,] <- c( 2000, 216 )
+
+The numbers in that line refer to the year and doy ('day of the year')
+at which harvesting takes place.
+
+**** 8.2.3 Parameter values
+
+BASGRA has 81 parameters for which the values are set in a txt-file,
+'parameters.txt' located in subdirectory 'parameters'. This txt-file in
+fact contains 10 different columns of parameter values, because
+parameterisation differs between sites. In particular the initial values
+of plant state variables and the parameters that define the soil water
+retention curve differ between sites. Values of non site-specific
+parameters in file 'parameters.txt', i.e. parameters whose values are
+the same in every column, are set to the Maximum a Posteriori (MAP)
+values from multi-site calibration carried out in August 2012. For any
+run, the column in 'parameters.txt' from which parameter values are to
+be taken is specified in the site-specific initialisation file. So if
+you want to run the model with a new parameter vector, add the new
+parameter vector as a new column in 'parameters.txt' and modify the
+initialisation file to look at that column.
+
+** 9 Running the model
+
+The model is run from script-files written in R.
+
+*** 9.1 Running the model with pre-defined settings
+
+You can run the model using any of the included files called
+'run\_BASGRA\_....R':
+
+1. Double-click on the file.
+
+2. This should open the file in RStudio. If not, it is advisable to
+   associate files with extension '.R' with Rstudio.
+
+3. Make sure that RStudio is not still looking at an older version of
+   the file (that can happen if you opened the file before).
+
+4. In RStudio, click on 'Source' - at the top right in the source editor
+   panel - to run the whole script-file in one go. That should produce
+   results that can be examined in the other RStudio-panels.
+
+*** 9.2 Running with different settings of your own choosing
+
+This can be done in various ways, but the most tidy is as follows:
+
+1. Make a new site-specific initialisation file
+   (initialise\_BASGRA\_...R') by editing one of the examples in the
+   'initialisation' directory and saving it under a different name.
+
+   -  If your new settings include the use of new weather data, you also
+      have to place a new weather file in subdirectory 'weather'. Make
+      sure that the new weather file folows the same format as the
+      already available weather files.
+
+2. Make a new 'run\_BASGRA\_...R' file, by copying and editing an
+   existing run-file. In line 2 of your new file 'run\_BASGRA\_....R',
+   call the new initialisation file that you made.
+
+3. Continue as above for pre-defined runs.
+
+*** 9.3 Running a batch job, i.e. a series of runs
+
+You can do this by writing an R-file in which every run is specified.
+Examples of such batch files are provided:
+'run\_batch\_BASGRA\_EXAMPLES.R' and
+'run\_batch\_BASGRA\_EXAMPLES\_weathergen.R'.
+
+** 10 Selecting and examining model outputs
+
+Output variables are specified in two files which must be kept mutually
+consistent: 'BASGRA.f90' and the general initialisation file
+'initialise\_BASGRA\_general.R'. The first is located in directory
+'model', the second in the master directory. The first is the
+FORTRAN-file where the variables are actually quantified, the second is
+where we give information on variable names and units that RStudio can
+use for post-processing of the results. In the included model files, 39
+output variables are specified, which include the 23 state variables of
+the model.
+
+*** 10.1 Choosing different output variables
+
+It is possible to change the choice of output variables. For example, to
+add a new variable to the outputs, you need to:
+
+-  increase the value of NOUT in 'initialise\_BASGRA\_general.R' by one.
+
+-  add the name of the new variable to the outputNameList (also in
+   "initialise\_BASGRA\_general.R")
+
+-  ensure that the variable is visible to 'BASGRA.f90'
+
+   -  Most but not all model variables are visible to BASGRA.f90. The
+      ones that are, are either declared at the top of 'BASGRA.f90'
+      itself, like all the model's state and rate variables, or at the
+      top of modules (other .f90 files) for which there is a "use"
+      statement in 'BASGRA.f90'. So the exceptions are variables that
+      are only locally defined inside subroutines. If you want to see
+      one of those variables, move its declaration from inside the
+      subroutine where it is defined to the top of its module, before
+      the "contains"-statement. That will make the variable accessible
+      anywhere in the module and in 'BASGRA.f90' because of the
+      "use"-statement there. If the variable was exported from the
+      subroutine where it was defined through the subroutine header,
+      remove it there. Then also check if the variable was present in
+      the header and declaration line of other subroutines in the
+      module, and if so remove them there too.
+
+-  add a line to BASGRA.f90 stating "y(day,40)=[new variable]" (assuming
+   the previous number of output variables was 39)
+
+*** 10.2 Examining output
+
+Outputs can be examined in various ways.
+
+**** 10.2.1 Matrix variable 'output'
+
+After every run, a large matrix called 'output' is produced, which can
+be inspected and analysed in RStudio. The matrix has the same number of
+rows as there are days in the simulation period, and the same number of
+columns at there are output variables. In BASGRA terms, the matrix
+dimensions are NDAYS x NOUT. The matrix does not show the names and
+units of the output variables, but these can be retrieved by inspecting
+the R-variable 'outputNames'.
+
+**** 10.2.2 Graphs
+
+The function 'plotOutputs' is available (through its definition in the
+general initialisation file) for easy plotting of results. The function
+takes three arguments: number of plot rows, number of plot columns, and
+a list of names of the selected output variables. An example of a call
+to that function is:
+
+-  plotOutputs( 3, 2, c("CLV","TILTOT","LAI","RDRT","PHEN") )
+
+** 11 Changing model structure
+
+If you want to make structural changes to BASGRA, you will be editing
+one or more of the FORTRAN files. So after that is done, you need to
+recompile the model. If you want to do that but somehow keep the option
+of using the old model version, then you can use the '#ifdef' construct
+when changing the model. This involves not replacing original code but
+adding branches to new code such that, at the compilation stage, it is
+still possible to choose between the old and new code:
+
+-  Write code as: #ifdef "label1" <new code> #else <old code> #endif
+
+-  To activate the new labelled code, use the D-option, i.e. add the
+   following term to the compile file:
+
+   -  ... -Dlabel1
+
+-  Note that an example of this method is already part of the model:
+   BASGRA can be compiled with or without the "Dweathergen" option
+   depending on the type of weather file you intend to use (see chapter
+   "Initialising the model").
+
+** 12 Bayesian calibration (BC)
+
+The model comes with R-files for calibrating the model's parameters
+using data from measurements. The files implement Bayesian calibration
+(BC) by means of Markov Chain Monte Carlo (MCMC) simulation using the
+Metropolis algorithm. The calibration involves six steps:
+
+1. Selecting the parameters that will be calibrated
+
+2. Defining the prior probability distribution for those parameters
+
+3. Selecting the data that the parameters will be calibrated against
+
+4. Defining the likelihood function associated with those data
+
+5. Running the MCMC
+
+6. Analysing the outcome of the MCMC
+
+Each of these steps will be explained in more detail in the following
+sections. In practice, we shall not do all steps one by one, but prepare
+everything before starting the BC, and run everything from one BC script
+file. Three examples of such BC script files are given in the master
+directory, all named 'BC\_BASGRA\_[].R'.
+
+*** 12.1 STEP 1: Selecting parameters for calibration
+
+Generally, it is best to include in the BC all parameters about which we
+are uncertain. The list of selected parameters should be listed in a
+txt-file that is placed in directory ‘BC'. Two examples of such files
+are already in that directory.
+
+*** 12.2 STEP 2: Defining the prior probability distribution
+
+The file 'parameters\_BC.txt' should contain, besides the list of
+parameter names in the first column, three columns with numbers. These
+numbers represent the minimum, mode and maximum of the marginal prior
+distribution for each parameter, which is assumed to be a beta
+distribution. The prior distribution represents your uncertainty about
+the values of the parameters, so to some degree it is subjective, but
+the distributions must obey some constraints.
+
+**** 12.2.1 Parameter constraints
+
+Given the structure of BASGRA and the meaning of its parameters, there
+are various parameter constraints. These need to be taken into account
+when creating the file 'parameters\_BC.txt'. Important constraints are:
+
+-  DLMXGE > DAYLB
+
+-  TOPTGE > TBASE
+
+-  FSMAX has a theoretical upper limit < 1.
+
+-  HAGERE <= 1
+
+-  SHAPE <= 1
+
+-  SLAMAX > SLAMIN
+
+-  TRANCO may have physical limits [a,b] where a>0 and b<infinity.
+
+-  YG < 1 because it is the Growth Yield, the fraction of C allocated to
+   growth that actually ends up in new biomass, with the remainder being
+   lost to growth respiration.
+
+*** 12.3 STEP 3: Selecting calibration data
+
+During calibration, data from measurements are compared with outputs
+from BASGRA. So the only kinds of measurement that can act as
+calibration data are those that correspond to a model output variable.
+The data must be specified in txt-files, where each row represents one
+measurement, with the name of the corresponding BASGRA output variable
+in the first column. Examples of calibration data files are provided:
+'data\_calibration\_Holt\_0506\_winter\_Gri.txt' and
+'data\_calibration\_Saerheim\_00\_early\_Gri.txt'. The values in columns
+two and three of these files represent the day of measurement and the
+measurement value itself.
+
+*** 12.4 STEP 4: Defining the likelihood function
+
+The likelihood function quantifies the probability of each measurement
+as a function of the parameter values. If the parameter values lead to
+model output that differs strongly from measurement, then the likelihood
+is low, and vice versa. The exact value of the likelihood for each
+measurement depends on our uncertainty with respect to measurement
+error. If the data have very low uncertainty, then even a small
+difference between model and measurement has a low likelihood, and so
+on. The measurement uncertainties are specified in BC initialisation
+files, of which three examples are given in subdirectory 'BC', all named
+'BC\_BASGRA\_MCMC\_init\_[]\_Gri.R'. In these files, measurement
+uncertainties are specified as follows:
+
+-  The default value of the coefficient of variation (CV) for
+   calibration data is set at 0.5;
+
+-  For dry matter yield (DM), CV = 0.05;
+
+-  For LAI, CV = 0.1;
+
+-  For total tiller density (TILTOT), CV = 0.2;
+
+-  For LT50, not a relative uncertainty such as the CV is given but an
+   absolute one of 5 degrees C.
+
+The above uncertainties are all used in a 'Sivia'-distribution
+likelihood function, which is similar to the Gaussian but has fatter
+tails and thus is more robust against outliers.
+
+-  For the fraction of tillers that is elongating (FRTILG), uncertainty
+   is represented by a beta-distribution on [0.3,0.9] with the mode at
+   the measured value. A beta- rather than Sivia-distribution was chosen
+   for this variable to have hard bounds on acceptable model output,
+   knowing that FRTILG just before the first cut should definitely be
+   higher than 0.3 or 0.4, and by definition less or equal to 1.
+
+After quantifying the uncertainty and parameter likelihood for each
+individual measurement, all these likelihoods are multiplied (or rather,
+the log-likelihoods are summed) to arrive at the overall
+(log-)likelihood of the parameter vector. Any of the above settings can
+of course be changed when datasets are used for which the measurement
+uncertainties are different.
+
+*** 12.5 STEP 5: Running the MCMC
+
+Before continuing, we need to recompile if a FORTRAN file was altered in
+STEP 1 ('set\_params\_BC.f90'). Then we need to set the length of the
+parameter vector chain to be generated in the MCMC, which is also done
+in the BC initialisation file. After that, we start the chain by running
+the script 'BC\_BASGRA\_MCMC.R'.
+
+*** 12.6 STEP 6: Analysing the outcome of the MCMC
+
+Assuming you have done your BC with included standard files for
+initialising and carrying out a BC, much information will automatically
+be available at the end of it. Many variables can be seen in RStudio, in
+the panel called 'Workspace', and they can be analysed by entering
+R-commands in the panel called 'Console'. But there are also
+automatically files produced, with BC results, in the working directory.
+
+-  'BC\_parameters\_traceplots\_[].pdf'.
+
+   -  This shows trace plots for each parameter in the calibration.
+
+-  'BC\_parameters\_priorbeta\_histograms\_[].pdf'.
+
+   -  This shows prior and posterior marginal distributions for each
+      parameter in the calibration.
+
+-  'BC\_outputs\_data\_[].pdf'
+
+   -  These show simulation outputs with uncertainties compared with
+      data. Red solid line: model output for the mode of the prior
+      distribution. Black solid and dotted lines: model output for the
+      posterior mode and uncertainty (5% and 95% quantiles). Blue solid
+      line: model output for the maximum likelihood parameter vector.
+
+-  'BASGRA\_parModes\_[].txt'.
+
+   -  This is a text-file, best opened in EXCEL, with parameter vectors,
+      including the modes from prior and posterior plus the maximum
+      likelihood vector and the posterior mean. There is also
+      information on the posterior marginal variances for each
+      parameter. These results are given for each of the sites included
+      in the calibration.
+
+   -  The parameter vectors are extended to the full complement of
+      (normally 76 or so) parameters that you can find in
+      'parameters.txt'. In the BC there were fewer parameters, so the
+      default values of the uncalibrated parameters are added.
+
+*** 12.7 On single-site BC vs. multi-site BC
+
+We distinguish two kinds of calibration: Single-site and Multi-site. In
+Single-site BC, all data are from one set of growing conditions (single
+season, single location), so the model only needs to be run once for
+every examined parameter vector. In Multi-site BC, we use data from more
+than one site (or more growing seasons), so that at every iteration in
+the MCMC the model needs to be run multiple times. To see an example of
+that, inspect, for example, the BC script file 'BC\_BASGRA\_ Gri.R'.
+
+*** 12.8 On running the BC with different settings and/or different data
+
+There are many possibilities here, depending on what you want to change.
+Some examples:
+
+-  1. To change the chain length of the MCMC, or the proposal
+   distribution:
+
+   -  Modify 'BC/BC\_BASGRA\_MCMC\_init[\_MULTISITE]\_....R'. Chain
+      length is called 'nChain' and the covariance matrix of the
+      proposal distribution is called 'vcovProp'.
+
+-  2. To modify the list of parameters included in the calibration:
+
+   -  Change 'BC/parameters\_BC.txt'.
+
+   -  If you deleted parameters from 'BC/parameters\_BC.txt', no further
+      changes are needed and you can start the BC in the usual way.
+
+   -  If you have added parameters to the existing 'parameters\_BC.txt'
+      file: check that your new calibration parameters are also included
+      in 'input/parameters\_default.txt'. That is required because the
+      calibration parameters must be a subset of the parameters that the
+      model reads in externally by means of that default parameter file.
+
+   -  If your new calibration parameters are not yet in
+      'input/parameters\_default.txt', add them there, and add them also
+      to 'model/set\_params.f90'. Furthermore, inspect
+      'model/parameters\_plant.f90' and 'model/parameters\_site.f90' to
+      see if those files also need some modification (which may be the
+      case if your new calibration parameters were originally given
+      fixed values in those files.
+
+-  3. To use a different dataset from the same site:
+
+   -  Change the existing datafile(s), called
+      'BC/data\_calibration\_...txt', or add a new one.
+
+   -  If a new datafile is created, insert its name in
+      'BC/BC\_BASGRA\_MCMC\_init[\_MULTISITE].R' instead of the default
+      datafile name.
+
+-  4. To add extra sites to a Multi-site BC:
+
+   -  Make new model initialisation files, called
+      'initialise\_BASGRA\_...txt', to the top-level directory.
+
+   -  Make new data files 'BC/data\_calibration\_...txt'.
+
+   -  Modify the calibration initialisation file
+      'BC/BC\_BASGRA\_MCMC\_init\_MULTISITE\_...R', by adding the new
+      filenames to the statements defining 'sitesettings\_filenames' and
+      'sitedata\_filenames'.
+
+** 13 Publications on BASGRA and related models
+
+-  Rodríguez, D., Van Oijen, M. & Schapendonk, A.H.C.M. (1999).
+   LINGRA\_CC: A sink-source model to simulate the impact of climate
+   change and management on grassland productivity. New Phytologist 144:
+   359-368.
+
+-  Höglind, M., Schapendonk, A.H.C.M. & Van Oijen, M. (2001). Timothy
+   growth in Scandinavia: a review of quantitative information on
+   underlying processes and an analysis by means of simulation
+   modelling. New Phytologist 151: 355-367.
+
+-  Van Oijen, M., Höglind, M., Hanslin, H.M. & Caldwell, N. (2005).
+   Process-based modelling of timothy regrowth. Agronomy Journal 97:
+   1295-1303.
+
+-  Thorsen, S.M., Roer, A.-G. & Van Oijen, M. (2010). Modelling the
+   dynamics of snow cover, soil frost and surface ice in Norwegian
+   grasslands. Polar Research 29: 110-126.
+
+-  Thorsen, S.M. & Höglind, M. (2010). Modelling cold hardening and
+   dehardening in timothy. Sensitivity analysis and Bayesian model
+   comparison. Agricultural and Forest Meteorology 150: 1529-1542.
+
+** 14 References cited
+
+-  Bonesmo, H. 1999. Spring growth and regrowth rates of timothy and
+   meadow fescue. Agricultural University of Norway. Doctor scientarium
+   theses 1999:8. ISSN 0802-3220.
+
+-  Peacock J.M. 1976. Temperature and leaf growth in four grass species.
+   Journal of Applied Ecology 13: 225--232.
+
+** 15 APPENDIX I: FORTRAN files and subroutines
+
+The following table shows for each BASGRA FORTRAN file which subroutines
+it contains, and which (if any) rate variables are calculated in those
+subroutines.
+
+| *File*                  | *Main subroutines*   | *Nested subroutines*      | *Calculated rate variables*                       |
+|-------------------------+----------------------+---------------------------+---------------------------------------------------|
+| BASGRA.f90              |                      |                           |                                                   |
+| environment.f90         |                      |                           |                                                   |
+|                         | set\_weather\_day    |                           |                                                   |
+|                         | Microclimate         |                           |                                                   |
+|                         |                      | RainSnowSurfacePool       |                                                   |
+|                         |                      | precForm                  | Psnow                                             |
+|                         |                      | WaterSnow                 |                                                   |
+|                         |                      | SnowMeltWmaxStore         | SnowMelt                                          |
+|                         |                      | WETSTORdynamics           | reFreeze                                          |
+|                         |                      | LiquidWaterDistribution   | Wremain                                           |
+|                         |                      | SnowDensity               |                                                   |
+|                         |                      | SnowDepthDecrease         | PackMelt                                          |
+|                         |                      | INFILrunOn                | INFIL                                             |
+|                         |                      | SurfacePool               | FREEZEPL,poolDrain,poolInfil,THAWPS               |
+|                         | DDAYL                |                           |                                                   |
+|                         | PEVAPINPUT           |                           |                                                   |
+|                         | PENMAN               |                           |                                                   |
+| parameters\_plant.f90   |                      |                           |                                                   |
+| parameters\_site.f90    |                      |                           |                                                   |
+| plant.f90               |                      |                           |                                                   |
+|                         | Harvest              |                           | GSTUB,HARVLA,HARVLV,HARVPH,HARVRE,HARVST,HARVTG   |
+|                         | Biomass              |                           |                                                   |
+|                         | Phenology            |                           | DPHEN,GPHEN                                       |
+|                         | Foliage1             |                           |                                                   |
+|                         | LUECO2TM             |                           |                                                   |
+|                         | HardeningSink        |                           |                                                   |
+|                         | Growth               |                           | RESMOB                                            |
+|                         |                      | Allocation                | GLV,GRES,GRT,GST                                  |
+|                         | PlantRespiration     |                           |                                                   |
+|                         | Senescence           |                           |                                                   |
+|                         |                      | AnaerobicDamage           | DLV,DRT,DSTUB,dTANAER,DTILV                       |
+|                         |                      | Hardening                 | DeHardRate,HardRate                               |
+|                         | Foliage2             |                           | GLAI                                              |
+| resources.f90           |                      |                           |                                                   |
+|                         | Light                |                           |                                                   |
+|                         | EVAPTRTRF            |                           | EVAP,TRAN                                         |
+|                         | ROOTDG               |                           | EXPLOR,RROOTD                                     |
+| set\_params.f90         |                      |                           |                                                   |
+| soil.f90                |                      |                           |                                                   |
+|                         | SoilWaterContent     |                           |                                                   |
+|                         | Physics              |                           |                                                   |
+|                         |                      | FrozenSoil                | Frate                                             |
+|                         | FRDRUNIR             |                           | DRAIN,FREEZEL,IRRIG,RUNOFF,THAWS                  |
+|                         | O2status             |                           |                                                   |
+|                         | O2fluxes             |                           | O2IN,O2OUT                                        |
+
+** 16 APPENDIX II: Variables
+
+*** 16.1 Introductory comments
+
+-  Areas (m2) are ground area unless otherwise indicated.
+
+-  Soil water amounts are given as "mm" water, which is equivalent to
+   "kg water m-2 ground area".
+
+**** 16.1.1 Types of variables
+
+1. State variables
+
+2. Non-state variables
+
+   -  Input variable: Variables whose values are not calculated by the
+      model but defined in the initialization file or imported from an
+      external data file.
+
+   -  Intermediate variables: Variables that express intermediate
+      results in the calculation of rate or output variables.
+
+   -  Output variables: Variables whose calculation can be deleted
+      without affecting any of the other model results.
+
+      -  Output variables whose identifier is given in quotation marks
+         ("") do not have explicit names in BASGRA.f90, but names are
+         given to them in the plotting routines.
+
+   -  Rate variables: Variables that directly change state variables.
+      They are part of the state update equation and their unit includes
+      "d-1".
+
+*** 16.2 State variables (BASGRA.f90)
+
+| *State variable*   | *Unit*        | *Meaning*                                         |
+|--------------------+---------------+---------------------------------------------------|
+| CLV                | gC m-2        | Weight of leaves                                  |
+| CLVD               | gC m-2        | Weight of leaves died since start simulation      |
+| CRES               | gC m-2        | Weight of reserves                                |
+| CRT                | gC m-2        | Weight of roots                                   |
+| CST                | gC m-2        | Weight of stems                                   |
+| CSTUB              | gC m-2        | Weight of stubble                                 |
+| DRYSTOR            | mm            | Snow amount as SWE (Soil Water Equivalent)        |
+| Fdepth             | m             | Soil frost layer depth                            |
+| LAI                | m2 leaf m-2   | Leaf area index                                   |
+| LT50               | °C            | Temperature that kills half the plants in a day   |
+| O2                 | mol m-2       | Soil oxygen content                               |
+| PHEN               | -             | Phenological stage                                |
+| ROOTD              | m             | Rooting depth                                     |
+| Sdepth             | m             | Snow depth                                        |
+| TANAER             | d             | Time since start anaerobic conditions             |
+| TILG1              | m-2           | Non-elongating generative tiller density          |
+| TILG2              | m-2           | Elongating generative tiller density              |
+| TILV               | m-2           | Non-elongating tiller density                     |
+| WAL                | mm            | Soil water amount: liquid                         |
+| WAPL               | mm            | Pool water amount: liquid                         |
+| WAPS               | mm            | Pool water amount: solid (=ice)                   |
+| WAS                | mm            | Soil water amount: solid (=ice)                   |
+| WETSTOR            | mm            | Liquid water in snow                              |
+
+*** 
+
+*** 
+
+*** 
+
+*** \\
+16.3 Non-state variables (BASGRA.f90)
+
+| *Variable*   | *Unit*                | *Meaning*                                                           | *Type*         |
+|--------------+-----------------------+---------------------------------------------------------------------+----------------|
+| "DM"         | g m-2                 | Aboveground DM                                                      | Output         |
+| "FRTILG"     | -                     | Elongating tiller fraction                                          | Output         |
+| "RES"        | g g-1                 | Reserves per g aboveground DM                                       | Output         |
+| "SLA"        | m2 g-1                | Leaf area per g of vegetative tillers                               | Output         |
+| "TILTOT"     | m-2                   | Total tiller density                                                | Output         |
+| "Time"       | y                     | Decimal year (approximation)                                        | Output         |
+| DAVTMP       | °C                    | Daily average temperature                                           | Intermediate   |
+| day          | d                     | Day index (running from 1 to NDAYS)                                 | Intermediate   |
+| DAYL         | d d-1                 | Day length                                                          | Intermediate   |
+| DeHardRate   | °C d-1                | Dehardening rate (LT50 becoming less negative)                      | Rate           |
+| DLAI         | m2 leaf m-2 d-1       | Death rate of leaf area                                             | Rate           |
+| DLV          | gC m-2 d-1            | Death rate of leaf mass                                             | Rate           |
+| doy          | d                     | Day of year (1 = 1 Jan)                                             | Intermediate   |
+| DPHEN        | d-1                   | Rate of decrease of phenological stage                              | Rate           |
+| DRAIN        | mm d-1                | Drainage rate below the root zone                                   | Rate           |
+| DRT          | gC m-2 d-1            | Death rate of roots                                                 | Rate           |
+| DSTUB        | gC m-2 d-1            | Death rate of stubble                                               | Rate           |
+| dTANAER      | d d-1                 | Change in days since start anaerobic conditions                     | Rate           |
+| DTILV        | tillers m-2 d-1       | Death rate of non/elongating tillers                                | Rate           |
+| DTR          | MJ GR m-2 d-1         | Daily global radiation                                              | Intermediate   |
+| EVAP         | mm d-1                | Evaporation of water from soil surface                              | Rate           |
+| EXPLOR       | mm d-1                | Increased access to water by root depth growth                      | Rate           |
+| FO2          | mol O2 mol-1 gas      | Soil oxygen as a fraction of total gas                              | Intermediate   |
+| Frate        | m d-1                 | Rate of increase of frost layer depth                               | Rate           |
+| FREEZEL      | mm d-1                | Freezing of soil water                                              | Rate           |
+| FREEZEPL     | mm d-1                | Freezing of pool water                                              | Rate           |
+| GLAI         | m2 leaf m-2 d-1       | Growth of leaf area                                                 | Rate           |
+| GLV          | gC m-2 d-1            | Growth of leaf mass                                                 | Rate           |
+| GPHEN        | d-1                   | Rate of phenological development                                    | Rate           |
+| GRES         | gC m-2 d-1            | Gross growth rate of reserve pool, uncorrected for remobilisation   | Rate           |
+| GRT          | gC m-2 d-1            | Growth of roots                                                     | Rate           |
+| GST          | gC m-2 d-1            | Growth of stems                                                     | Rate           |
+| GSTUB        | gC m-2 d-1            | Growth of stubble due to harvest of elongating tillers              | Rate           |
+| HardRate     | °C d-1                | Hardening (LT50 becoming more negative)                             | Rate           |
+| HARVLA       | m2 leaf m-2 d-1       | Harvested leaf area                                                 | Rate           |
+| HARVLV       | gC m-2 d-1            | Harvested leaf mass                                                 | Rate           |
+| HARVPH       | d-1                   | Resetting of phenological stage by harvesting                       | Rate           |
+| HARVRE       | gC m-2 d-1            | Harvested reserves                                                  | Rate           |
+| HARVST       | gC m-2 d-1            | Harvested stem mass                                                 | Rate           |
+| HARVTG       | tillers m-2 d-1       | Harvested elongating tillers (apex removed by harvesting)           | Rate           |
+| INFIL        | mm d-1                | Water flow into soil from precipitation and snow melt               | Rate           |
+| IRRIG        | mm d-1                | Irrigation rate                                                     | Rate           |
+| LERG         | m d-1                 | Leaf elongation rate per leaf for generative tillers                | Intermediate   |
+| NELLVG       | tiller-1              | Number of growing leaves per elongating tiller                      | Intermediate   |
+| O2IN         | mol m-2 d-1           | Influx of oxygen into the soil                                      | Rate           |
+| O2OUT        | mol m-2 d-1           | Efflux of oxygen from the soil                                      | Rate           |
+| PackMelt     | m d-1                 | Loss of snow height by packing and by melting                       | Rate           |
+| PAR          | mol PAR m-2 d-1       | Daily photosynthetically active radiation                           | Intermediate   |
+| PARAV        | mumol PAR m-2 s-1     | Average PAR during the photoperiod                                  | Intermediate   |
+| PARINT       | mol PAR m-2 d-1       | PAR interception                                                    | Intermediate   |
+| PERMGAS      | d-1                   | Permeability of soil surface to gas exchange                        | Intermediate   |
+| PEVAP        | mm d-1                | Potential rate of evaporation from the soil                         | Intermediate   |
+| poolDrain    | mm d-1                | Water flow from pool to soil                                        | Rate           |
+| poolInfil    | mm d-1                | Water flow to pool from other sources than ice thawing              | Rate           |
+| Psnow        | mm d-1                | Snow fall                                                           | Rate           |
+| PTRAN        | mm d-1                | Potential transpiration rate                                        | Intermediate   |
+| reFreeze     | mm d-1                | Freezing of liquid water stored in snow                             | Rate           |
+| RESMOB       | gC m-2 d-1            | Mobilisation of reserves                                            | Rate           |
+| RESPHARD     | gC m-2 d-1            | Plant hardening respiration                                         | Intermediate   |
+| RGRTV        | d-1                   | Relative rate of tillering                                          | Intermediate   |
+| RGRTVG       | d-1                   | Relative rate of tillers becoming elongating tillers                | Intermediate   |
+| RLEAF        | leaves tiller-1 d-1   | Leaf appearance rate per tiller                                     | Intermediate   |
+| RplantAer    | gC m-2 d-1            | Aerobic plant respiration                                           | Intermediate   |
+| RROOTD       | m d-1                 | Rate of increase in rooting depth                                   | Rate           |
+| RUNOFF       | mm d-1                | Loss of water by runoff                                             | Rate           |
+| SnowMelt     | mm d-1                | Snow melting                                                        | Rate           |
+| THAWPS       | mm d-1                | Rate of surface ice thawing                                         | Rate           |
+| THAWS        | mm d-1                | Water flow to soil pool from thawing of frozen soil                 | Rate           |
+| TRAN         | mm d-1                | Transpiration                                                       | Rate           |
+| TRANRF       | -                     | Transpiration realisation factor                                    | Intermediate   |
+| Tsurf        | °C                    | Soil surface temperature                                            | Intermediate   |
+| VERN         | -                     | Vernalization status                                                | Intermediate   |
+| Wremain      | mm d-1                | Liquid water stored in snow that remains there                      | Rate           |
+| y            | (various)             | Output variables matrix (NDAYS x NOUT)                              | Output         |
+
+*** 16.4 Variables (readweather.f90)
+
+| *Variable*   | *Unit*       | *Meaning*                      | *Type*         |
+|--------------+--------------+--------------------------------+----------------|
+| DOYI         | d            | Day of year                    | Input          |
+| GR           | MJ m-2 d-1   | Global radiation               | Input          |
+| PETI         | mm d-1       | Potential evapotranspiration   | Input          |
+| PREC         | mm d-1       | Precipitation                  | Input          |
+| RAINI        | mm d-1       | Precipitation                  | Intermediate   |
+| RDDI         | kJ m-2 d-1   | Global radiation               | Intermediate   |
+| RH           | %            | Relative humidity              | Input          |
+| T            | °C           | Temperature                    | Input          |
+| TMMNI        | °C           | Minimum temperature            | Input          |
+| TMMXI        | °C           | Maximum temperature            | Input          |
+| VPI          | kPa          | Vapour pressure                | Input          |
+| WNI          | m s-1        | Wind speed                     | Input          |
+| YEARI        | y            | Year                           | Input          |
+
+*** 16.5 Variables (environment.f90)
+
+| *Variable*      | *Unit*             | *Meaning*                                                       | *Type*         |
+|-----------------+--------------------+-----------------------------------------------------------------+----------------|
+| BBRAD           | J m-2 d-1          | Black body radiation                                            | Intermediate   |
+| DAVTMP          | °C                 | Daily average temperature                                       | Intermediate   |
+| day             | d                  | Day index (running from 1 to NDAYS)                             | Intermediate   |
+| DAYL            | d d-1              | Day length                                                      | Intermediate   |
+| DEC             | radians            | Declination of the sun                                          | Intermediate   |
+| DECC            | radians            | Declination of the sun, corrected for extreme day lengths       | Intermediate   |
+| DENSITY         | kg m-3             | Density of snow                                                 | Intermediate   |
+| doy             | d                  | Day of year (1 = 1 Jan)                                         | Intermediate   |
+| DOYI            | d                  | Day of year (1 = 1 Jan)                                         | Input          |
+| DRYSTOR         | mm                 | Snow amount as SWE (Soil Water Equivalent)                      | State          |
+| DTR             | MJ m-2 d-1         | Daily global radiation                                          | Intermediate   |
+| DTRJM2          | J GR m-2 d-1       | Daily global radiation                                          | Intermediate   |
+| EVAP            | mm d-1             | Evaporation of water from soil surface                          | Intermediate   |
+| Fdepth          | m                  | Soil frost layer depth                                          | State          |
+| Frate           | m d-1              | Rate of increase of frost layer depth                           | Rate           |
+| FREEZEPL        | mm d-1             | Freezing rate of pool water                                     | Rate           |
+| INFIL           | mm d-1             | Water flow into soil from precipitation and snow melt           | Rate           |
+| LAI             | m2 leaf m-2        | Leaf area index                                                 | Intermediate   |
+| Melt            | mm °C-1 d-1        | Potential snow melt rate per degree above TmeltFreeze           | Intermediate   |
+| NRADC           | J m-2 d-1          | Net radiation absorption by the canopy                          | Intermediate   |
+| NRADS           | J m-2 d-1          | Net radiation absorption by the soil                            | Intermediate   |
+| PackMelt        | m d-1              | Loss of snow height by packing and by melting                   | Rate           |
+| PAR             | mol PAR m-2 d-1    | Daily photosynthetically active radiation                       | Intermediate   |
+| PENMD           | J m-2 d-1          | Atmospheric drying power term of the Penman equation            | Intermediate   |
+| PENMRC          | J m-2 d-1          | Radiation term of the Penman equation for canopy                | Intermediate   |
+| PENMRS          | J m-2 d-1          | Radiation term of the Penman equation for soil                  | Intermediate   |
+| PERMgas         | d-1                | Permeability of soil surface to gas exchange                    | Intermediate   |
+| PET             | mm d-1             | Potential evapotranspiration                                    | Intermediate   |
+| PETI            | mm d-1             | Potential evapotranspiration                                    | Input          |
+| PEVAP           | mm d-1             | Potential evaporation rate                                      | Intermediate   |
+| PINFIL          | mm d-1             | Wsupply - RNINTC                                                | Intermediate   |
+| PIrate          | m d-1              | Potential rate of pool freezing (if negative, thawing)          | Intermediate   |
+| poolDrain       | mm d-1             | Water flow from pool to soil                                    | Rate           |
+| poolInfil       | mm d-1             | Water flow to pool from other sources than ice thawing          | Rate           |
+| poolRUNOFF      | mm d-1             | Water runoff from exceedance of surface pool capacity           | Intermediate   |
+| poolVolRemain   | mm d-1             | Unused capacity of surface pool                                 | Intermediate   |
+| poolWavail      | mm d-1             | Liquid water potentially available for flow from pool to soil   | Intermediate   |
+| Psnow           | mm d-1             | Snow fall                                                       | Rate           |
+| PTRAN           | mm d-1             | Potential transpiration rate                                    | Intermediate   |
+| Pwater          | mm d-1             | Rain                                                            | Intermediate   |
+| RAIN            | mm d-1             | Precipitation                                                   | Intermediate   |
+| RAINI           | mm d-1             | Precipitation                                                   | Intermediate   |
+| RDD             | kJ m-2 d-1         | Global radiation                                                | Intermediate   |
+| RDDI            | kJ m-2 d-1         | Global radiation                                                | Intermediate   |
+| reFreeze        | mm d-1             | Freezing of liquid water stored in snow                         | Rate           |
+| reFreezeMax     | mm d-1             | Maximum refreezing rate                                         | Intermediate   |
+| RLWN            | J m-2 d-1          | Net outgoing long-wave radiation                                | Intermediate   |
+| RNINTC          | mm d-1             | Interception of precipitation by the canopy                     | Intermediate   |
+| runOn           | mm d-1             | Water in excess of what can infiltrate the soil                 | Intermediate   |
+| Sdepth          | m                  | Snow depth                                                      | State          |
+| SLOPE           | kPA °C-1           | Temperature derivative of SVP                                   | Intermediate   |
+| SnowMelt        | mm d-1             | Snow melting                                                    | Rate           |
+| StayWet         | mm d-1             | Liquid water in snow remaining liquid                           | Intermediate   |
+| SVP             | kPa                | Saturation vapour pressure                                      | Intermediate   |
+| SWE             | mm                 | Snow Water Equivalent (solid plius liquid)                      | Intermediate   |
+| THAWPS          | mm d-1             | Rate of surface ice thawing                                     | Rate           |
+| TMMN            | °C                 | Minimum temperature                                             | Intermediate   |
+| TMMNI           | °C                 | Minimum temperature                                             | Input          |
+| TMMX            | °C                 | Maximum temperature                                             | Intermediate   |
+| TMMXI           | °C                 | Maximum temperature                                             | Input          |
+| Tsurf           | °C                 | Soil surface temperature                                        | Intermediate   |
+| VP              | kPa                | Vapour pressure                                                 | Intermediate   |
+| VPI             | kPa                | Vapour pressure                                                 | Input          |
+| WAPL            | mm                 | Pool water amount: liquid                                       | State          |
+| WAPS            | mm                 | Pool water amount: solid (=ice)                                 | State          |
+| Wavail          | mm d-1             | Liquid water from rain, snow melt and storage in snow           | Intermediate   |
+| WDF             | kg m-2 d-1 kPa-1   | Wind factor in the Penman equation                              | Intermediate   |
+| WETSTOR         | mm                 | Liquid water in snow                                            | State          |
+| WmaxStore       | mm d-1             | Liquid water storage capacity of the snowpack                   | Intermediate   |
+| WN              | m s-1              | Wind speed                                                      | Intermediate   |
+| WNI             | m s-1              | Wind speed                                                      | Input          |
+| Wremain         | mm d-1             | Liquid water staying in snow pack                               | Rate           |
+| Wsupply         | mm d-1             | Liquid water not staying in snow pack                           | Intermediate   |
+| YEARI           | y                  | Year                                                            | Input          |
+| year            | y                  | Year                                                            | Intermediate   |
+
+*** 16.6 Variables (soil.f90)
+
+| *Variable*   | *Unit*             | *Meaning*                                               | *Type*         |
+|--------------+--------------------+---------------------------------------------------------+----------------|
+| alpha        |                    |                                                         | Intermediate   |
+| DAVTMP       | °C                 | Daily average temperature                               | Intermediate   |
+| DRAIN        | mm d-1             | Drainage rate below the root zone                       | Rate           |
+| EVAP         | mm d-1             | Evaporation of water from soil surface                  | Rate           |
+| Fdepth       | m                  | Soil frost layer depth                                  | State          |
+| FO2          | mol O2 mol-1 gas   | Soil oxygen as a fraction of total gas                  | Intermediate   |
+| fPerm        |                    |                                                         | Intermediate   |
+| Frate        | m d-1              | Rate of increase of frost layer depth                   | Rate           |
+| FREEZEL      | mm d-1             | Freezing rate of soil water                             | Rate           |
+| INFIL        | mm d-1             | Water flow into soil from precipitation and snow melt   | Rate           |
+| INFILTOT     | mm d-1             | Water flow into soil from aboveground compartments      | Intermediate   |
+| IRRIG        | mm d-1             | Irrigation rate                                         | Rate           |
+| O2           | mol m-2            | Soil oxygen content                                     | State          |
+| O2IN         | mol m-2 d-1        | Influx of oxygen into the soil                          | Rate           |
+| O2MX         | mol m-2            | Maximum oxygen content of soil                          | Intermediate   |
+| O2OUT        | mol m-2 d-1        | Efflux of oxygen from the soil                          | Rate           |
+| PERMgas      | d-1                | Permeability of soil surface to gas exchange            | Intermediate   |
+| PFrate       | m d-1              |                                                         | Intermediate   |
+| poolDrain    | mm d-1             | Water flow from pool to soil                            | Rate           |
+| ROOTD        | m                  | Rooting depth                                           | State          |
+| RplantAer    | gC m-2 d-1         | Aerobic respiration                                     | Intermediate   |
+| RUNOFF       | mm d-1             | Loss of water by runoff                                 | Rate           |
+| Sdepth       | m                  | Snow depth                                              | State          |
+| THAWS        | mm d-1             | Water flow to soil pool from thawing of frozen soil     | Rate           |
+| TRAN         | mm d-1             | Transpiration                                           | Rate           |
+| WAFC         | mm                 | Water in non-frozen root zone at field capacity         | Intermediate   |
+| WAL          | mm                 | Soil water amount: liquid                               | State          |
+| WAS          | mm                 | Soil water amount: solid (=ice)                         | State          |
+| WAST         | mm                 | Water in non-frozen root zone at saturation             | Intermediate   |
+| WCeff        | m3 m-3             | Frozen soil water contributing to heat transport        | Intermediate   |
+| WCL          | m3 m-3             | Water concentration in non-frozen soil                  | Intermediate   |
+
+*** 16.7 Variables (resources.f90)
+
+| *Variable*   | *Unit*              | *Meaning*                                            | *Type*         |
+|--------------+---------------------+------------------------------------------------------+----------------|
+| AVAILF       | -                   | Availability of water for evapotranspiration         | Intermediate   |
+| DAYL         | d d-1               | Day length                                           | Intermediate   |
+| DTR          | MJ GR m-2 d-1       | Daily global radiation                               | Intermediate   |
+| DTRINT       | MJ GR m-2 d-1       | Interception of global radiation                     | Intermediate   |
+| EVAP         | mm d-1              | Evaporation of water from soil surface               | Rate           |
+| EXPLOR       | mm d-1              | Increased access to water by root depth growth       | Rate           |
+| Fdepth       | m                   | Soil frost layer depth                               | State          |
+| FR           | -                   | Transpiration realisation at sufficient soil water   | Intermediate   |
+| LAI          | m2 leaf m-2         | Leaf area index                                      | State          |
+| PAR          | mol PAR m-2 d-1     | Daily photosynthetically active radiation            | Intermediate   |
+| PARAV        | mumol PAR m-2 s-1   | Average PAR during the photoperiod                   | Intermediate   |
+| PARINT       | mol PAR m-2 d-1     | PAR interception                                     | Intermediate   |
+| PEVAP        | mm d-1              | Potential rate of evaporation from the soil          | Intermediate   |
+| PTRAN        | mm d-1              | Potential transpiration rate                         | Intermediate   |
+| ROOTD        | m                   | Rooting depth                                        | State          |
+| RROOTD       | m d-1               | Root depth growth rate                               | Rate           |
+| TRAN         | mm d-1              | Transpiration                                        | Rate           |
+| TRANRF       | -                   | Transpiration realisation factor                     | Intermediate   |
+| WAAD         | mm                  | Water in non-frozen soil at air dryness              | Intermediate   |
+| WAL          | mm                  | Soil water amount: liquid                            | State          |
+| WCL          | m3 m-3              | Water concentration in non-frozen soil               | Intermediate   |
+
+*** 16.8 Variables (plant.f90)
+
+| *Variable*      | *Unit*                      | *Meaning*                                                                              | *Type*         |
+|-----------------+-----------------------------+----------------------------------------------------------------------------------------+----------------|
+| ALLOLV          | gC m-2 d-1                  | Allocation of carbohydrates to leaf growth                                             | Intermediate   |
+| ALLORT          | gC m-2 d-1                  | Allocation of carbohydrates to root growth                                             | Intermediate   |
+| ALLOSH          | gC m-2 d-1                  | Allocation of carbohydrates to shoot growth                                            | Intermediate   |
+| ALLOST          | gC m-2 d-1                  | Allocation of carbohydrates to stem growth                                             | Intermediate   |
+| ALLOTOT         | gC m-2 d-1                  | Allocation of carbohydrates to sinks other than hardening                              | Intermediate   |
+| CLAI            | m2 leaf m-2                 | LAI remaining after harvest                                                            | Intermediate   |
+| CLV             | gC m-2                      | Weight of leaves                                                                       | State          |
+| CRES            | gC m-2                      | Weight of reserves                                                                     | State          |
+| CRESMX          | gC m-2                      | Maximum amount of reserves                                                             | Intermediate   |
+| CRT             | gC m-2                      | Weight of roots                                                                        | State          |
+| CST             | gC m-2                      | Weight of stems                                                                        | State          |
+| CSTAV           | gC tiller-1                 | Average size of elongating tillers                                                     | Intermediate   |
+| CSTUB           | gC m-2                      | Weight of stubble                                                                      | State          |
+| DAVTMP          | °C                          | Daily average temperature                                                              | Intermediate   |
+| DAYL            | d d-1                       | Day length                                                                             | Intermediate   |
+| DAYLGE          | -                           | Day length effect on allocation, tillering, leaf appearance, leaf elongation           | Intermediate   |
+| DeHardRate      | °C d-1                      | Dehardening rate (LT50 becoming less negative)                                         | Rate           |
+| DLAI            | m2 leaf m-2 d-1             | Death rate of leaf area                                                                | Rate           |
+| DLV             | gC m-2 d-1                  | Death rate of leaf mass                                                                | Rate           |
+| doy             | d                           | Day of year (1 = 1 Jan)                                                                | Intermediate   |
+| doySinceStart   | d                           | Days passed since start of decrease in rehardening capability                          | Intermediate   |
+| DPHEN           | d-1                         | Rate of decrease of phenological stage                                                 | Rate           |
+| DRT             | gC m-2 d-1                  | Death rate of roots                                                                    | Rate           |
+| DSTUB           | gC m-2 d-1                  | Death rate of stubble                                                                  | Rate           |
+| dTANAER         | d d-1                       | Change in days since start anaerobic conditions                                        | Rate           |
+| DTILV           | tillers m-2 d-1             | Death rate of non-elongating tillers                                                   | Rate           |
+| EFF             | mol CO2 mol-1 PAR quanta    | Quantum yield of photosynthesis                                                        | Intermediate   |
+| EFFTMP          | degC                        | Effective temperature for leaf elongation                                              | Intermediate   |
+| fAer            | -                           | Aeration status of soil                                                                | Intermediate   |
+| FO2             | mol O2 mol-1 gas            | Soil oxygen as a fraction of total gas                                                 | Intermediate   |
+| FRACTV          | -                           | Fraction of tillers that is not elongating                                             | Intermediate   |
+| GAMMAX          | ppm CO2)                    | CO2 compensation point at no mitochondrial respiration                                 | Intermediate   |
+| GLAI            | m2 leaf m-2 d-1             | Growth rate of leaf area                                                               | Rate           |
+| GLAISI          | m2 leaf m-2 d-1             | Potential growth rate of leaf area                                                     | Intermediate   |
+| GLV             | gC m-2 d-1                  | Growth rate of leaf mass                                                               | Rate           |
+| GLVSI           | gC m-2 d-1                  | Potential growth rate of leaf mass                                                     | Intermediate   |
+| GPHEN           | d-1                         | Rate of phenological development                                                       | Rate           |
+| GRES            | gC m-2 d-1                  | Gross growth rate of reserve pool, uncorrected for remobilisation                      | Rate           |
+| GRESSI          | gC m-2 d-1                  | Sink strength of reserve pool                                                          | Intermediate   |
+| GRT             | gC m-2 d-1                  | Growth rate of roots                                                                   | Rate           |
+| GSHSI           | gC m-2 d-1                  | Potential growth rate of shoot                                                         | Intermediate   |
+| GST             | gC m-2 d-1                  | Growth rate of stems                                                                   | Rate           |
+| GSTSI           | gC m-2 d-1                  | Potential growth rate of stems                                                         | Intermediate   |
+| GSTUB           | gC m-2 d-1                  | Growth of stubble due to harvest of elongating tillers                                 | Rate           |
+| HardRate        | °C d-1                      | Hardening (LT50 becoming more negative)                                                | Rate           |
+| HARV            | -                           | Flag indicating that the current day is a harvest day                                  | Intermediate   |
+| HARVFR          | -                           | Fraction of leaf and leaf area that is harvested                                       | Intermediate   |
+| HARVLA          | m2 leaf m-2 d-1             | Harvested leaf area                                                                    | Rate           |
+| HARVLV          | gC m-2 d-1                  | Harvested leaf mass                                                                    | Rate           |
+| HARVPH          | d-1                         | Resetting of phenological stage by harvesting                                          | Rate           |
+| HARVRE          | gC m-2 d-1                  | Harvested reserves                                                                     | Rate           |
+| HARVST          | gC m-2 d-1                  | Harvested stem mass                                                                    | Rate           |
+| HARVTG          | tillers m-2 d-1             | Harvested elongating tillers (apex removed by harvesting)                              | Rate           |
+| KMC             | ppm CO2                     | Km-value Rubisco for carboxylation                                                     | Intermediate   |
+| KMO             | % O2                        | Km-value Rubisco for oxygenation                                                       | Intermediate   |
+| LAI             | m2 leaf m-2                 | Leaf area index                                                                        | State          |
+| LD50            | d                           | Duration of anaerobic conditions at which death rate is half the maximum               | Intermediate   |
+| LERG            | m d-1                       | Elongation rate of leaves on elongating tillers                                        | Intermediate   |
+| LERV            | m d-1                       | Elongation rate of leaves on non-elongating tillers                                    | Intermediate   |
+| LT50            | °C                          | Temperature that kills half the plants in a day                                        | State          |
+| LUEMXQ          | mol CO2 mol-1 PAR           | Light-use efficiency                                                                   | Intermediate   |
+| NELLVG          | tiller-1                    | Number of elongating leaves per elongating tiller                                      | Intermediate   |
+| NOHARV          | -                           | Flag indicating that the current day is not a harvest day                              | Intermediate   |
+| PARAV           | mumol PAR m-2 s-1           | Average PAR during the photoperiod                                                     | Intermediate   |
+| PARINT          | mol PAR m-2 d-1             | PAR interception                                                                       | Intermediate   |
+| PERMgas         | d-1                         | Permeability of soil surface to gas exchange                                           | Intermediate   |
+| PHEN            | -                           | Phenological stage                                                                     | State          |
+| PHENRF          | -                           | Effect of phenological stage on leaf elongation and appearance in elongating tillers   | Intermediate   |
+| PHOT            | gC m-2 d-1                  | Photosynthesis                                                                         | Intermediate   |
+| PMAX            | micromol CO2 m-2 s-1        | Photosynthesis rate of upper leaves at light saturation                                | Intermediate   |
+| RATED           | °C d-1                      | Potential rate of dehardening, if below limit set by RATEDMX                           | Intermediate   |
+| RATEH           | °C d-1                      | Potential rate of hardening, at non-limiting carbohydrate spply                        | Intermediate   |
+| RDRFROST        | d-1                         | Relative death rate due to frost                                                       | Intermediate   |
+| RDRTOX          | d-1                         | Relative death rate due to anaerobic conditions                                        | Intermediate   |
+| RDRS            | d-1                         | Relative death rate of leaves and non-elongating tillers due to shading                | Intermediate   |
+| RDRT            | d-1                         | Relative leaf death rate due to high temperature                                       | Intermediate   |
+| reHardPeriod    | -                           | Day of year dependent hardening capability                                             | Intermediate   |
+| RESMOB          | gC m-2 d-1                  | Mobilisation of reserves                                                               | Rate           |
+| RESNOR          | -                           | Normalised concentration of reserves                                                   | Intermediate   |
+| RESPGSH         | gC m-2 d-1                  | Respiration associated with shoot growth                                               | Intermediate   |
+| RESPGRT         | gC m-2 d-1                  | Respiration associated with root growth                                                | Intermediate   |
+| RESPHARD        | gC m-2 d-1                  | Plant hardening respiration                                                            | Intermediate   |
+| RESPHARDSI      | gC m-2 d-1                  | Sink strength from carbohydrate demand of hardening                                    | Intermediate   |
+| RGRTVG          | d-1                         | Relative rate of tillers becoming elongating tillers                                   | Intermediate   |
+| RLEAF           | d-1                         | Leaf appearance rate per tiller                                                        | Intermediate   |
+| RplantAer       | gC m-2 d-1                  | Aerobic plant respiration                                                              | Intermediate   |
+| RSR3H           | d-1                         | Relative frost survival rate                                                           | Intermediate   |
+| RSRDAY          | d-1                         | Relative frost survival rate                                                           | Intermediate   |
+| SINK1T          | gC tiller-1 d-1             | Sink strength of individual elongating tillers                                         | Intermediate   |
+| SLANEW          | m2 leaf gC-1                | SLA of new leaf                                                                        | Intermediate   |
+| SOURCE          | gC m-2 d-1                  | Source strength from photsynthesis and reserve mobilisation                            | Intermediate   |
+| T               | °C                          | Temperature                                                                            | Input          |
+| TANAER          | d                           | Time since start anaerobic conditions                                                  | State          |
+| TGE             | -                           | Temperature effect on initiation of elongation in tillers                              | Intermediate   |
+| TILG            | m-2                         | Elongating tiller density                                                              | State          |
+| TILV            | m-2                         | Non-elongating tiller density                                                          | State          |
+| TMPFAC          | -                           | Linear decrease of photosynthetic quantum yield at low temperature                     | Intermediate   |
+| TRANRF          | -                           | Transpiration realisation factor                                                       | Intermediate   |
+| Tsurf           | °C                          | Soil surface temperature                                                               | Intermediate   |
+| TV1             | -                           | Fraction of reserves removed at harvest                                                | Intermediate   |
+| TV1             | d-1                         | Potential leaf appearance rate                                                         | Intermediate   |
+| TV1             | d-1                         | Relative leaf death rate due to shading if below the maximum rate                      | Intermediate   |
+| TV2             | d-1                         | Maxmimum ratio of tiller and leaf apearance, at unlimited reserves                     | Intermediate   |
+| TV2             | d-1                         | Relative leaf death rate                                                               | Intermediate   |
+| TV2TIL          | d-1                         | Relative death rate of non-elongating tillers                                          | Intermediate   |
+| VCMAX           | micromol CO2 m-2 leaf s-1   | Maximum carboxylation rate in upper leaves                                             | Intermediate   |
+
+** 17 APPENDIX III: Parameters
+
+*** 17.1 Introductory comments
+
+-  Areas (m2) are ground area unless otherwise indicated.
+
+-  Soil water amounts are given as "mm" water, which is equivalent to
+   "kg water m-2 ground area".
+
+*** 17.2 Parameters in BASGRA.f90
+
+| *Parameter*   | *Unit*             | *Meaning*                                     | *Declared where*        | *Quantified where*        |
+|---------------+--------------------+-----------------------------------------------+-------------------------+---------------------------|
+| CLVI          | gC m-2             | Initial value of leaves                       | parameters\_plant.f90   | parameters\_default.txt   |
+| CRESI         | gC m-2             | Initial value of reserves                     | parameters\_plant.f90   | parameters\_default.txt   |
+| CRTI          | gC m-2             | Initial value of roots                        | parameters\_plant.f90   | parameters\_default.txt   |
+| CSTI          | gC m-2             | Initial value of stems                        | parameters\_plant.f90   | parameters\_default.txt   |
+| FGAS          | m3 m-3             | Soil pore space (potentially gaseous)         | parameters\_site.f90    | parameters\_default.txt   |
+| FO2MX         | mol O2 mol-1 gas   | Maximum oxygen fraction of soil gas           | parameters\_site.f90    | parameters\_default.txt   |
+| FRTILGI       | -                  | Initial value of elongating tiller fraction   | parameters\_plant.f90   | parameters\_default.txt   |
+| LAII          | m2 m-2             | Initial value of leaf area index              | parameters\_plant.f90   | parameters\_default.txt   |
+| LT50I         | °C                 | Initial value of LT50                         | parameters\_plant.f90   | parameters\_default.txt   |
+| PHENI         | -                  | Initial value of phenological stage           | parameters\_plant.f90   | parameters\_default.txt   |
+| RHOnewSnow    | kg SWE m-3         | Density of newly fallen snow                  | parameters\_site.f90    | parameters\_default.txt   |
+| ROOTDM        | m                  | Initial and maximum value rooting depth       | parameters\_plant.f90   | parameters\_default.txt   |
+| TILTOTI       | m-2                | Initial value of tiller density               | parameters\_plant.f90   | parameters\_default.txt   |
+| WCI           | m3 m-3             | Initial value of soil water concentration     | parameters\_site.f90    | parameters\_default.txt   |
+
+*** 17.3 Parameters in environment.f90
+
+| *Parameter*   | *Unit*        | *Meaning*                                                | *Declared where*       | *Quantified where*        |
+|---------------+---------------+----------------------------------------------------------+------------------------+---------------------------|
+| KSNOW         | mm-1          | Light extinction coefficient of snow                     | parameters\_site.f90   | parameters\_default.txt   |
+| LAT           | °N            | latitude                                                 | parameters\_site.f90   | parameters\_default.txt   |
+| RHOpack       | d-1           | Relative packing rate of snow                            | parameters\_site.f90   | parameters\_default.txt   |
+| SWret         | mm mm-1 d-1   | Liquid water storage capacity of snow                    | parameters\_site.f90   | parameters\_default.txt   |
+| SWrf          | mm d-1 °C-1   | Maximum refreezing rate per degree below 'TmeltFreeze'   | parameters\_site.f90   | parameters\_default.txt   |
+| TmeltFreeze   | °C            | Temperature above which snow melts                       | parameters\_site.f90   | parameters\_default.txt   |
+| TrainSnow     | °C            | Temperature below which precipitation is snow            | parameters\_site.f90   | parameters\_default.txt   |
+| WpoolMax      | mm            | Maximum pool water (liquid plus ice)                     | parameters\_site.f90   | parameters\_default.txt   |
+
+*** 17.4 Parameters in soil.f90
+
+| *Parameter*   | *Unit*             | *Meaning*                                    | *Declared where*       | *Quantified where*        |
+|---------------+--------------------+----------------------------------------------+------------------------+---------------------------|
+| FGAS          | -                  | Fraction of soil volume that is gaseous      | parameters\_site.f90   | parameters\_default.txt   |
+| FO2MX         | mol O2 mol-1 gas   | Maximum oxygen fraction of soil gas          | parameters\_site.f90   | parameters\_default.txt   |
+| gamma         | m-1                | Temperature extinction coefficient of snow   | parameters\_site.f90   | parameters\_default.txt   |
+| KRTOTAER      | -                  | Ratio of total to aerobic respiration        | parameters\_site.f90   | parameters\_default.txt   |
+| LAMBDAsoil    | J m-1 degC-1 d-1   |                                              | parameters\_site.f90   | parameters\_default.txt   |
+| WCFC          | m3 m-3             | Water concentration at field capacity        | parameters\_site.f90   | parameters\_default.txt   |
+| WCST          | m3 m-3             | Water concentration at saturation            | parameters\_site.f90   | parameters\_default.txt   |
+
+*** 17.5 Parameters in resources.f90
+
+| *Parameter*   | *Unit*        | *Meaning*                                                  | *Declared where*        | *Quantified where*        |
+|---------------+---------------+------------------------------------------------------------+-------------------------+---------------------------|
+| K             | m2 m-2 leaf   | PAR extinction coefficient                                 | parameters\_plant.f90   | parameters\_default.txt   |
+| ROOTDM        | m             | Initial and maximum value rooting depth                    | parameters\_plant.f90   | parameters\_default.txt   |
+| RRDMAX        | m d-1         | Maximum root depth growth rate                             | parameters\_plant.f90   | parameters\_default.txt   |
+| TRANCO        | mm d-1        | Transpiration coefficient                                  | parameters\_plant.f90   | parameters\_default.txt   |
+| WCAD          | m3 m-3        | Water concentration at air dryness                         | parameters\_site.f90    | parameters\_default.txt   |
+| WCFC          | m3 m-3        | Water concentration at field capacity                      | parameters\_site.f90    | parameters\_default.txt   |
+| WCST          | m3 m-3        | Water concentration at full saturation                     | parameters\_site.f90    | parameters\_default.txt   |
+| WCWET         | m3 m-3        | Water concentration above which transpiration is reduced   | parameters\_site.f90    | parameters\_default.txt   |
+| WCWP          | m3 m-3        | Water concentration at wilting point                       | parameters\_site.f90    | parameters\_default.txt   |
+
+*** 17.6 Parameters in plant.f90
+
+| *Parameter*      | *Unit*             | *Meaning*                                                                | *Declared where*        | *Quantified where*        |
+|------------------+--------------------+--------------------------------------------------------------------------+-------------------------+---------------------------|
+| CLAIV            | m2 leaf m-2        | Maxmimum LAI remaining after harvest, when no tillers elongate           | parameters\_plant.f90   | parameters\_default.txt   |
+| COCRESMX         | -                  | Maximum concentration of reserves in aboveground biomass (not stubble)   | parameters\_plant.f90   | parameters\_default.txt   |
+| CSTAVM           | gC tiller-1        | Maximum size of elongating tillers                                       | parameters\_plant.f90   | parameters\_default.txt   |
+| DAYLB            | d d-1              | Day length below which phenological stage is reset to zero               | parameters\_plant.f90   | parameters\_default.txt   |
+| DAYLP            | d d-1              | Day length below which phenological development slows down               | parameters\_plant.f90   | parameters\_default.txt   |
+| DLMXGE           | d d-1              | Day length below which DAYLGE becomes less than 1                        | parameters\_plant.f90   | parameters\_default.txt   |
+| Dparam           | °C-1 d-1           | Constant in the calculation of dehardening rate                          | parameters\_plant.f90   | parameters\_default.txt   |
+| FO2MX            | mol O2 mol-1 gas   | Maximum oxygen fraction of soil gas                                      | parameters\_site.f90    | parameters\_default.txt   |
+| FSLAMIN          | -                  | Minimum SLA of new leaves as a fraction of maximum possible SLA          | parameters\_plant.f90   | parameters\_default.txt   |
+| FSMAX            | -                  | Maximum ratio of tiller and leaf appearance based on sward geometry      | parameters\_plant.f90   | parameters\_default.txt   |
+| HAGERE           | -                  | Fraction of reserves in elongating tillers that is harvested             | parameters\_plant.f90   | parameters\_default.txt   |
+| Hparam           | °C-1 d-1           | Hardening parameter                                                      | parameters\_plant.f90   | parameters\_default.txt   |
+| K                | m2 m-2 leaf        | PAR extinction coefficient                                               | parameters\_plant.f90   | parameters\_default.txt   |
+| KLUETILG         | -                  | LUE-increase with increasing fraction elongating tillers                 | parameters\_plant.f90   | parameters\_default.txt   |
+| KRDRANAER        | d-1                | Maximum relative death rate due to anearobic conditions                  | parameters\_plant.f90   | parameters\_default.txt   |
+| KRESPHARD        | gC gC-1 °C-1       | Carbohydrate requirement of hardening                                    | parameters\_plant.f90   | parameters\_default.txt   |
+| KRSR3H           | °C-1               | Constant in the logistic curve for frost survival                        | parameters\_plant.f90   | parameters\_default.txt   |
+| LAICR            | m2 leaf m-2        | LAI above which shading induces leaf senescence                          | parameters\_plant.f90   | parameters\_default.txt   |
+| LAIEFT           | m2 m-2 leaf        | Decrease in tillering with leaf area index                               | parameters\_plant.f90   | parameters\_default.txt   |
+| LAITIL           | -                  | Maximum ratio of tiller and leaf apearance at low leaf area index        | parameters\_plant.f90   | parameters\_default.txt   |
+| LDT50A           | d                  | Intercept of linear dependence of LD50 on lT50                           | parameters\_plant.f90   | parameters\_default.txt   |
+| LDT50B           | d °C-1             | Slope of linear dependence of LD50 on LT50                               | parameters\_plant.f90   | parameters\_default.txt   |
+| LFWIDG           | m                  | Leaf width on elongating tillers                                         | parameters\_plant.f90   | parameters\_default.txt   |
+| LFWIDV           | m                  | Leaf width on non-elongating tillers                                     | parameters\_plant.f90   | parameters\_default.txt   |
+| LT50MN           | °C                 | Minimum LT50                                                             | parameters\_plant.f90   | parameters\_default.txt   |
+| LT50MX           | °C                 | Maximum LT50                                                             | parameters\_plant.f90   | parameters\_default.txt   |
+| NELLVM           | tiller-1           | Number of elongating leaves per non-elongating tiller                    | parameters\_plant.f90   | parameters\_default.txt   |
+| PHENCR           | -                  | Phenological stage above which elongation and appearance of leaves on    | parameters\_plant.f90   | parameters\_default.txt   |
+|                  |                    | elongating tillers decreases                                             |                         |                           |
+| PHY              | °C d               | Phyllochron                                                              | parameters\_plant.f90   | parameters\_default.txt   |
+| RATEDMX          | °C d-1             | Maximum dehardening rate                                                 | parameters\_plant.f90   | parameters\_default.txt   |
+| RDRSCO           | d-1                | Relative death rate of leaves and non-elongating tillers due to          | parameters\_plant.f90   | parameters\_default.txt   |
+|                  |                    | shading when LAI is twice the threshold (LAICR)                          |                         |                           |
+| RDRSMX           | d-1                | Maximum relative death rate of leaves and non-elongating tillers due     | parameters\_plant.f90   | parameters\_default.txt   |
+|                  |                    | to shading                                                               |                         |                           |
+| RDRTEM           | d-1 °C-1           | Proportionality of leaf senescence with temperature                      | parameters\_plant.f90   | parameters\_default.txt   |
+| reHardRedStart   | d                  | Start of period of decrease in rehardening capability                    | plant.f90               | plant.f90                 |
+| reHardRedDay     | d                  | Duration of period over which rehardening capability disappears          | parameters\_plant.f90   | parameters\_default.txt   |
+| RGENMX           | d-1                | Maximum relative rate of tillers becoming elongating tillers             | parameters\_plant.f90   | parameters\_default.txt   |
+| RUBISC           | g m-2 leaf         | Rubisco content of upper leaves                                          | parameters\_plant.f90   | parameters\_default.txt   |
+| RUBISCN          | mumol m-2 leaf     | Rubisco content of upper leaves                                          | plant.f90               | plant.f90                 |
+| SHAPE            | -                  | Area of a leaf relative to a rectangle of same length and width          | parameters\_plant.f90   | parameters\_default.txt   |
+| SIMAX1T          | gC tiller-1 d-1    | Sink strength of small elongating tillers                                | parameters\_plant.f90   | parameters\_default.txt   |
+| SLAMAX           | m2 leaf gC-1       | Maximum SLA of new leaves                                                | parameters\_plant.f90   | parameters\_default.txt   |
+| SLAMIN           | m2 leaf gC-1       | Minimum SLA of new leaves (= SLAMAX * FSLAMIN)                           | plant.f90               | plant.f90                 |
+| TBASE            | °C                 | Minimum value of effective temperature for leaf elongation               | parameters\_plant.f90   | parameters\_default.txt   |
+|                  |                    | Minimum soil surface temperature for leaf appearance                     |                         |                           |
+| TCRES            | d                  | Time constant of mobilisation of reserves                                | parameters\_plant.f90   | parameters\_default.txt   |
+| THARDMX          | °C                 | Maximum surface temperature at which hardening is possible               | parameters\_plant.f90   | parameters\_default.txt   |
+| TsurfDiff        | °C                 | Constant in the calculation of dehardening rate                          | parameters\_plant.f90   | parameters\_default.txt   |
+| YG               | gC gC-1            | Growth yield per unit expended carbohydrate                              | parameters\_plant.f90   | parameters\_default.txt   |
+
+** 18 APPENDIX IV: Constants
+
+*** 18.1 Introductory comments
+
+-  Areas (m2) are ground area unless otherwise indicated.
+
+-  Soil water amounts are given as "mm" water, which is equivalent to
+   "kg water m-2 ground area".
+
+*** 18.2 Constants in BASGRA.f90
+
+| *Constant*   | *Value*   | *Unit*     | *Meaning*                                 | *Declared where*        | *Quantified where*              |
+|--------------+-----------+------------+-------------------------------------------+-------------------------+---------------------------------|
+|              | 0.40      | gC gDM-1   | C-content reserves                        | -                       | BASGRA.f90                      |
+|              | 0.45      | gC gDM-1   | C-content leaves, stems, stubble          | -                       | BASGRA.f90                      |
+|              | 0.5       | d          | Constant in calculation decimal year      | -                       | BASGRA.f90                      |
+|              | 1000      | l m-3      | Volumetric unit conversion                | -                       | BASGRA.f90                      |
+|              | 1000      | mm m-1     | Length unit conversion                    | -                       | BASGRA.f90                      |
+|              | 22.4      | l mol-1    | Molar volume                              | -                       | BASGRA.f90                      |
+|              | 366       | d y-1      | Constant in calculation decimal year      | -                       | BASGRA.f90                      |
+| CLVDI        | 0.        | gC m-2     | Initial value of cumulative dead leaves   | parameters\_plant.f90   | parameters\_plant.f90           |
+| CLVHI        | 0.        | gC m-2     | Initial value of harvested leaves         | parameters\_plant.f90   | parameters\_plant.f90           |
+| CSTUBI       | 0.        | gC m-2     | Initial value of stubble                  | parameters\_plant.f90   | parameters\_plant.f90           |
+| DRYSTORI     | 0.        | mm         | Initial value of snow amount              | parameters\_site.f90    | parameters\_site.f90            |
+| FdepthI      | 0.        | m          | Initial value of depth frozen soil        | parameters\_site.f90    | parameters\_site.f90            |
+| NDAYS        |           | d          | Length of simulation period               | BASGRA.f90              | initialise\_BASGRA\_[site].R    |
+| NOUT         | 35        | -          | Number of output variables                | BASGRA.f90              | initialise\_BASGRA\_general.R   |
+| SDEPTHI      | 0.        | m          | Initial value of snow depth               | parameters\_site.f90    | parameters\_site.f90            |
+| TANAERI      | 0.        | d          | Initial value of anaerobic days           | parameters\_site.f90    | parameters\_site.f90            |
+| WAPLI        | 0.        | mm         | Initial value of pool water (liquid)      | parameters\_site.f90    | parameters\_site.f90            |
+| WAPSI        | 0.        | mm         | Initial value of pool water (solid)       | parameters\_site.f90    | parameters\_site.f90            |
+| WASI         | 0.        | mm         | Initial value of soil water (solid)       | parameters\_site.f90    | parameters\_site.f90            |
+| WETSTORI     | 0.        | mm         | Initial value of liquid water in snow     | parameters\_site.f90    | parameters\_site.f90            |
+
+*** 18.3 Constants in read\_weather.f90
+
+| *Constant*    | *Value*   | *Unit*    | *Meaning*                              | *Declared where*    | *Quantified where*             |
+|---------------+-----------+-----------+----------------------------------------+---------------------+--------------------------------|
+|               | 0.6108    | kPa       | Constant in calculation saturated VP   | -                   | -                              |
+|               | 17.27     | °C-1      | Constant in calculation saturated VP   | -                   | -                              |
+|               | 239       | °C        | Constant in calculation saturated VP   | -                   | -                              |
+|               | 100       | %         | Fraction unit conversion               | -                   | -                              |
+|               | 1000      | kJ MJ-1   | Energy unit conversion                 | -                   | -                              |
+| doy\_start    |           | d         | Start day of simulation                | read\_weather.f90   | initialise\_BASGRA\_[site].R   |
+| NDAYS         |           | d         | Length of simulation period            | BASGRA.f90          | initialise\_BASGRA\_[site].R   |
+| ST            |           | -         | Weather station number                 | read\_weather.f90   | weather data file              |
+| year\_start   |           | y         | Start year of simulation               | read\_weather.f90   | initialise\_BASGRA\_[site].R   |
+
+*** 18.4 Constants in environment.f90
+
+| *Constant*       | *Value*       | *Unit*             | *Meaning*                                                      | *Declared where*       | *Quantified where*     |
+|------------------+---------------+--------------------+----------------------------------------------------------------+------------------------+------------------------|
+|                  | 0.001         | m mm-1             | Length unit conversion                                         | -                      | environment.f90        |
+|                  | 0.001         | MJ J-1             | Energy unit conversion                                         | -                      | environment.f90        |
+|                  | 0.15          | -                  | Reflection coefficient of global radiation onto soil           | -                      | environment.f90        |
+|                  | 0.25          | -                  | Reflection coefficient of global radiation onto canopy         | -                      | environment.f90        |
+|                  | 0.25          | mm m-2 leaf d-1    | Maximum canopy rain interception efficiency                    | -                      | environment.f90        |
+|                  | 0.5           | -                  | Efficiency of transpiration reduction by intercepted rain      | -                      | environment.f90        |
+|                  | 0.5           | d d-1              | Constant in calculation day length                             | -                      | environment.f90        |
+|                  | 0.5           | J PAR J-1 GR       | PAR as a fraction of GR                                        | -                      | environment.f90        |
+|                  | 0.5           | m2 m-2 leaf        | Extinction coefficient global radiation                        | -                      | environment.f90        |
+|                  | 0.54          | s m-1              | Constant in wind factor Penman equation                        | -                      | environment.f90        |
+|                  | 0.55          | -                  | Maximum ratio of net long-wave to black-body radiation         | -                      | environment.f90        |
+|                  | 0.611         | kPa                | Saturation vapour pressure at zero degrees Celsius             | -                      | environment.f90        |
+|                  | 1.0           | -                  | Constant in wind factor Penman equation                        | -                      | environment.f90        |
+|                  | 1.E6          | J MJ-1             | Energy unit conversion                                         | -                      | environment.f90        |
+|                  | 10.           | d                  | Difference between 21 June and midyear                         | -                      | environment.f90        |
+|                  | 1000.         | mm m-1             | Length unit conversion                                         | -                      | environment.f90        |
+|                  | 17.4          | -                  | Constant in calculation saturation vapour pressure             | -                      | environment.f90        |
+|                  | 174.          | d                  | Constant in calculation snow melting rate                      | -                      | environment.f90        |
+|                  | 2             | -                  | Power coefficient in calculation of 'eta'                      | -                      | environment.f90        |
+|                  | 2             | -                  | POwer coefficient in temperature derivative of SVP             | -                      | environment.f90        |
+|                  | 2.            | -                  | Constant in calculation of 'PIrate'                            | -                      | environment.f90        |
+|                  | 2.            | rad                | Angle of a pi-th part of a circle                              | -                      | environment.f90        |
+|                  | 2.0           | -                  | Constant in calculation daily average temperature              | -                      | environment.f90        |
+|                  | 2.63          | kg m-2 d-1 kPa-1   | Constant in wind factor Penman equation                        | -                      | environment.f90        |
+|                  | 23.45         | °                  | Solar declination at June 21                                   | -                      | environment.f90        |
+|                  | 239           | °C                 | Constant in calculation saturation vapour pressure             | -                      | environment.f90        |
+|                  | 273           | K                  | Temperature unit conversion                                    | -                      | environment.f90        |
+|                  | 365.          | d                  | Number of days per year                                        | -                      | environment.f90        |
+|                  | 4             | -                  | Power coefficient in calculation black-body radiation          | -                      | environment.f90        |
+|                  | 4.56          | mol MJ-1 PAR       | Quanta per MJ PAR                                              | -                      | environment.f90        |
+|                  | 4158.6        | °C                 | Constant in temperature derivative of SVP (= 17.4 * 239)       | -                      | environment.f90        |
+|                  | 480.          | kg m-3             | Maximum snow density                                           | -                      | environment.f90        |
+|                  | 86400         | s d-1              | Time unit conversion                                           | -                      | environment.f90        |
+|                  | 91.           | d                  | Constant in calculation snow melting rate                      | -                      | environment.f90        |
+| Ampl             | 0.625         | mm °C-1 d-1        | Intra-annual amplitude snow melt at 1 degree > 'TmeltFreeze'   | parameters\_site.f90   | parameters\_site.f90   |
+| Bias             | 4.625         | mm °C-1 d-1        | Average snow melting rate at 1 degree above 'TmeltFreeze'      | parameters\_site.f90   | parameters\_site.f90   |
+| BOLTZM           | 5.668E-8      | J m-2 s-1 K-4      | Stefan-Boltzmann constant                                      |                        |                        |
+| eta              | 0.0005777     | m2 K-1 d-1         | Compound parameter (= LAMBDAice/(RHOwater*LatentHeat))         |                        |                        |
+| Freq             | 2.*pi/365.    | rad d-1            | Unit conversion time to annual cycle                           | parameters\_site.f90   | parameters\_site.f90   |
+| LAMBDAice        | 1.9354e+005   | J m-1 K-1 d-1      | Thermal conductivity of ice                                    | parameters\_site.f90   | parameters\_site.f90   |
+| LatentHeat       | 335000        | J kg-1             | Latent heat of water fusion                                    | parameters\_site.f90   | parameters\_site.f90   |
+| LHVAP            | 2.4E6         | J kg-1             | Latent heat of water evaporation                               |                        |                        |
+| NMAXDAYS         | 365*200       | d                  | Maxmimum length of weather data files                          |                        |                        |
+| pi               | 3.1416        | -                  | ratio of circle circumference and diameter                     | parameters\_site.f90   | parameters\_site.f90   |
+| poolInfilLimit   | 0.2           | m                  | Soil frost depth limit for water infiltration                  | parameters\_site.f90   | parameters\_site.f90   |
+| PSYCH            | 0.067         | kPA °C-1           | Psychrometric constant                                         |                        |                        |
+| RAD              | pi/180.       | radians °-1        | Angular unit conversion                                        |                        |                        |
+| RHOwater         | 1000          | kg m-3             | Density of water                                               | parameters\_site.f90   | parameters\_site.f90   |
+
+*** 18.5 Constants in soil.f90
+
+| *Constant*   | *Value*   | *Unit*           | *Meaning*                                                   | *Declared where*       | *Quantified where*     |
+|--------------+-----------+------------------+-------------------------------------------------------------+------------------------+------------------------|
+|              | 1.        | mol O2 mol-1 C   | Oxygen use in respiration                                   | -                      | soil.f90               |
+|              | 1000      | mm m-1           | Length unit conversion                                      | -                      | soil.f90               |
+|              | 12        | gC mol-1         | Molar mass of carbon                                        | -                      | soil.f90               |
+|              | 22.4      | l mol-1          | Molar volume of gas                                         | -                      | soil.f90               |
+| DELT         | 1         | d                | Model time step                                             | parameters\_site.f90   | parameters\_site.f90   |
+| DRATE        | 50        | mm d-1           | Maximum drainage rate                                       | parameters\_site.f90   | parameters\_site.f90   |
+| IRRIGF       | 0         | -                | Irrigation relative to what would maintain field capacity   | parameters\_site.f90   | parameters\_site.f90   |
+| LatentHeat   | 335000    | J kg-1           | Latent heat of water fusion                                 | parameters\_site.f90   | parameters\_site.f90   |
+| RHOwater     | 1000      | kg m-3           | Density of water                                            | parameters\_site.f90   | parameters\_site.f90   |
+
+*** 18.6 Constants in resources.f90
+
+| *Constant*   | *Value*   | *Unit*        | *Meaning*                                              | *Declared where*       | *Quantified where*     |
+|--------------+-----------+---------------+--------------------------------------------------------+------------------------+------------------------|
+|              | 0.001     | m mm-1        | Length unit conversion                                 | -                      | resources.f90          |
+|              | 0.01      | m3 m-3        | Minimum difference between WCCR and WCWP               | -                      | resources.f90          |
+|              | 0.75      | -             | Ratio of interception efficiencies for GR and PAR      | -                      | resources.f90          |
+|              | 1         | -             | Maximum PAR interception                               | -                      | resources.f90          |
+|              | 1.        | -             | Maximum availability of water for evapotranspiration   | -                      | resources.f90          |
+|              | 1000      | mm m-1        | Length unit conversion                                 | -                      | resources.f90          |
+|              | 1E6       | mumol mol-1   | Quantity unit conversion                               | -                      | resources.f90          |
+|              | 24        | h d-1         | Time unit conversion                                   | -                      | resources.f90          |
+|              | 3600      | s h-1         | Time unit conversion                                   | -                      | resources.f90          |
+| DELT         | 1         | d             | Model time step                                        | parameters\_site.f90   | parameters\_site.f90   |
+
+*** 18.7 Constants in plant.f90
+
+| *Constant*     | *Value*    | *Unit*                      | *Meaning*                                                                    | *Declared where*        | *Quantified where*             |
+|----------------+------------+-----------------------------+------------------------------------------------------------------------------+-------------------------+--------------------------------|
+|                | 0.01       | °C                          | Constant in the equation for phenological development                        | -                       | plant.f90                      |
+|                | 0.000144   |                             | Constant in the equation for phenological development                        | -                       | plant.f90                      |
+|                | 0.24       | d d-1                       | Constant in the equation for phenological development                        | -                       | plant.f90                      |
+|                | 0.5        | -                           | Constant in the equation for the CO2 compensation point                      | -                       | plant.f90                      |
+|                | 0.5        | -                           | Normalised duration of period without rehardening capability                 | -                       | plant.f90                      |
+|                | 0.5        | -                           | Sink strength of reserve pool relative to what would fill it maximally       | -                       | plant.f90                      |
+|                | 0.5        | d-1                         | Maximum relative death rate due to frost                                     | -                       | plant.f90                      |
+|                | 0.7        | -                           | Ratio of chloroplast to atmospheric CO2 concentration                        | -                       | plant.f90                      |
+|                | 1.         | d d-1                       | Rate of increase of TANAER when soil permeability to gas is zero             | -                       | plant.f90                      |
+|                | 1000.      | mm m-1                      | Length unit conversion                                                       | -                       | plant.f90                      |
+|                | 10.5       | ppm-1 CO2                   | Constant in calculation quantum yield                                        | -                       | plant.f90                      |
+|                | 12.        | gC mol-1 CO2                | Carbon content of a mole of CO2                                              | -                       | plant.f90                      |
+|                | 1.E6       | mumol mol-1                 | Quantity unit conversion                                                     | -                       | plant.f90                      |
+|                | 2.1        | mol PAR mol-1 CO2           | Photon requirement of photosynthesis                                         | -                       | plant.f90                      |
+|                | 24.        |                             | Constant in the equation for phenological development                        | -                       | plant.f90                      |
+|                | 0.52       | mm d-1 °C-1                 | Constant in equation for leaf elongation on non-elongating tillers           | -                       | plant.f90                      |
+|                | 0.76       | mm d-1                      | Constant in equation for leaf elongation on non-elongating tillers           | -                       | plant.f90                      |
+|                | 2.80       | mm d-1 °C-1                 | Constant in equation for leaf elongation on elongating tillers               | -                       | plant.f90                      |
+|                | 273.       | °C                          | Constant in temperature dependence of VCMAC, KMC and KMO                     | -                       | plant.f90                      |
+|                | 298.       | °C                          | Constant in temperature dependence of VCMAC, KMC and KMO                     | -                       | plant.f90                      |
+|                | 365.       | d                           | Constant in calculation period of possible rehardening                       | -                       | plant.f90                      |
+|                | 4.         | °C                          | Constant in calculation low-temperature reduction of quantum yield           | -                       | plant.f90                      |
+|                | 4.5        | ppm-1 CO2                   | Constant in calculation quantum yield                                        | -                       | plant.f90                      |
+|                | 5.         | °C                          | Temperature below which reserve mobilisation slows down                      | -                       | plant.f90                      |
+|                | 5.         | °C                          | Constant in calculation low-temperature reduction of quantum yield           | -                       | plant.f90                      |
+|                | 5.         | -                           | Constant in calculation of reserve limitation of rehardening sink strength   | -                       | plant.f90                      |
+|                | 5.46       | mm d-1                      | Constant in equation for leaf elongation on elongating tillers               | -                       | plant.f90                      |
+|                | 550000     | g mol-1                     | Molar mass of Rubisco                                                        | -                       | plant.f90                      |
+| CO2A           | 350        | ppm                         | CO2 concentration in atmosphere                                              | parameters\_site.f90    | parameters\_site.f90           |
+| CO2I           | 0.7*350    | ppm                         | CO2 concentration in chloroplasts                                            | plant.f90               | plant.f90                      |
+| DELT           | 1          | d                           | Model time step                                                              | parameters\_site.f90    | parameters\_site.f90           |
+| doyHA(1:3)     |            | d                           | Harvest days                                                                 | parameters\_site.f90    | initialise\_BASGRA\_[site].R   |
+| EA             | -          |                             | Unused constant                                                              |                         |                                |
+| EAVCMX         | 68000      | J mol-1                     | Activation energy for VCMAX                                                  | plant.f90               | plant.f90                      |
+| EAKMC          | 65800      | J mol-1                     | Activation energy for KMC                                                    | plant.f90               | plant.f90                      |
+| EAKMO          | 1400       | J mol-1                     | Activation energy for KMO                                                    | plant.f90               | plant.f90                      |
+| KC25           | 20         | mol CO2 mol-1 Rubisco s-1   | Catalytic efficiency of Rubisco at 25 degC                                   | plant.f90               | plant.f90                      |
+| KMC25          | 460        | ppm CO2                     | Km-value Rubisco for carboxylation at 25 degC                                | plant.f90               | plant.f90                      |
+| KMO25          | 33         | % O2                        | Km-value Rubisco for oxygenation at 25 degC                                  | plant.f90               | plant.f90                      |
+| KOKC           | 0.21       | -                           | Catalytic efficiency ratio Rubisco oxygenation/carboxylation                 | plant.f90               | plant.f90                      |
+| O2             | 21         | % O2                        | Oxygen concentration in chloroplasts                                         | plant.f90               | plant.f90                      |
+| R              | 8.314      | J K-1 mol-1                 | Universal gas constant                                                       | plant.f90               | plant.f90                      |
+| RDRROOT        | 0.         | d-1                         | Relative death rate of roots                                                 | parameters\_plant.f90   | parameters\_plant.f90          |
+| RDRSTUB        | 0.2        | d-1                         | Relative death rate of stubble                                               | parameters\_plant.f90   | parameters\_plant.f90          |
+| reHardRedEnd   | 91         | d                           | day of year at which rehardening capability becomes zero                     | parameters\_plant.f90   | parameters\_plant.f90          |
